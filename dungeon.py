@@ -23,17 +23,14 @@ def main():
    # monster_horde.append(Monster('dragon', 200, 20, 5))
 
     print([str(monster) for monster in monster_horde])
-    input('are you ready to fight the monster hoard? > ')
+    input('are you ready to fight the monster horde? > ')
     print('rhetorical question... we begin now:')
     sleep(1)
 
     if not player:
         player=Monster('dragon', 200, 20, 5)
 
-    for monster in monster_horde:
-        print(f'{player} will now fight {monster}... to the death.')
-        sleep(3)
-        player.fight(monster)
+        player.fight(monster_horde)
     player.save()
 
 if __name__=='__main__': main()

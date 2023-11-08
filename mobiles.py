@@ -10,7 +10,7 @@ debug(f'{DEBUG}')
 
 class Mobile(Object): 
     def __init__(self, name:str='', hit_points=0, attack=0, defense=0):
-        Object.__init__(self, name)
+        super().__init__(self, name)
         self.hit_points=hit_points
         self.name=name
         self.attack=attack

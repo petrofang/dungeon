@@ -14,10 +14,14 @@ class Object:
 
     def __str__(self): return self.name
 
+class Weapon(Object):
+    def __init__(self, name: str = 'weapon'):
+        super().__init__(name)
+
 class Armor(Object):
     armor_bonus=1
     def __init__(self, name='armor', armor_rating=1):
-        Object.__init__(self, name)
+        super().__init__(self, name)
         self.armor_rating=armor_rating
     
     def __add__(self, other):

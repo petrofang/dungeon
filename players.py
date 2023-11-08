@@ -8,7 +8,7 @@ from mobiles import Mobile
 
 class PlayerCharacter(Mobile):
     def __init__(self, name:str='adventurer', hit_points:int=100, attack=10, defense=5) -> None:
-        Mobile.__init__(self, name, hit_points, attack, defense)
+        super().__init__(self, name, hit_points, attack, defense)
     
     def save(self):
         ''' save a player-character to file '''
