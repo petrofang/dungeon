@@ -1,79 +1,14 @@
-#dungeon.py
-
+from objects import *
+from mobiles import *
+from combat import *
+ 
 from random import random
 from time import sleep
 
-class Mobile: 
-    def __init__(self, name:str='', health=0, attack=0, defense=0):
-        self.hit_points=health
-        self.name=name
-        self.attack=attack
-        self.defense=defense
-        self.armor=0
-        self.dead=False
+DEBUG=True
+def debug(message): print(f'DEBUG:{message}') if DEBUG else None
+debug(DEBUG)
 
-    def __str__(self): return self.name
-    def fight(self, other): fight(self, other)
-
-class Monster(Mobile):
-    def __init__(self, name:str='monster', health:int=2, attack:int=1, defense:int=0):
-        Mobile.__init__(self, name, health, attack, defense)
-
-class PlayerCharacter(Mobile):
-    def __init__(self, name:str='adventurer', health:int=100, attack=10, defense=5) -> None:
-        Mobile.__init__(self, name, health, attack, defense)
-
-def d20_roll(n:int=1): return int(1+(random()*20//1))
-
-def fight(me, them):
-  if not them.dead:  
-    me.roll=d20_roll()
-    them.roll=d20_roll()
-    print(f'{me} makes an attack at {them}!')
-    sleep(3)
-    print(f'{me}\'s attack: {me.attack}')
-    print(f'{them}\'s defense: {them.defense}')
-    sleep(3)
-    print(f'{me}\'s d20: {me.roll}.')
-    print(f'{them}\'s d20: {them.roll}')
-    sleep(3)
-    damage = me.roll + me.attack - them.roll - them.defense
-    if damage > 0:
-        damage=damage-them.armor
-        print("It's a hit!")
-        sleep(2)
-        print(f'damage = ({me.roll} + {me.attack}) - ({them.roll} + {them.defense})')
-        sleep(2)
-        if them.armor > 0: print(f'{them}\'s armor prevents {them.armor} damage')
-        print(f'{damage} damage done to {them}!')
-        them.hit_points-=damage
-        sleep(2)
-        print(f'{them} HP remaining: {max(0, them.hit_points)}')
-        sleep(2)
-    else:
-        print("Swing and a miss!")
-    sleep(3)
-
-    if them.hit_points < 1:
-        # oh them dead
-        them.dead=True
-        print(f'the lifeless body of {them} hits the ground... dead.')
-        sleep(2)
-        print(f'{me} is victorious.')
-        sleep(3)
-        if isinstance(me, PlayerCharacter):
-            me.defense+=1
-            me.attack+=1
-            me.armor+=1
-            print(f'{me} attack raised to {me.attack}.')
-            print(f'{me} defense raised to {me.defense}.')
-            print(f'{me} armor raised to {me.armor}.')
-        sleep(6)
-    else:
-        print(f'{them} fights back!')
-        print('---------------------')
-        them.fight(me)
-  else: print(f'{them} is aleady dead.')
 
 def generate_player() -> PlayerCharacter:
     print(" --- New character generation ---")
@@ -85,8 +20,6 @@ def generate_player() -> PlayerCharacter:
     player=PlayerCharacter(name)
     return player
 
-                
-    
 def main():
     player=generate_player()
 
@@ -107,7 +40,8 @@ def main():
         if not player.dead:
             print(f'{player} will now fight {monster}... to the death.')
             sleep(3)
-            monster.fight(player)
+            player.fight(monster)
     input()
+
 
 if __name__=='__main__': main()
