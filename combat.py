@@ -1,6 +1,7 @@
 from random import random
 from time import sleep
 from objects import generate_armor as generate_armor
+import players
 
 DEBUG=True
 def debug(message): print(f'DEBUG:{message}') if DEBUG else None
@@ -48,7 +49,7 @@ def fight(me, them):
         sleep(2)
         print(f'{me} is victorious.')
         sleep(3)
-        from mobiles import PlayerCharacter as PlayerCharacter
+        from players import PlayerCharacter 
         if isinstance(me, PlayerCharacter):
             me.defense+=1
             me.attack+=1

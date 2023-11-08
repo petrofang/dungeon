@@ -1,15 +1,17 @@
 #objects.py
 from random import random
-from time import sleep
+from time import time
 
 DEBUG=True
-def debug(message): print(f'DEBUG:{message}') if DEBUG else None
-debug(f'{DEBUG} @ {__name__}')
+def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+debug(f'{DEBUG}')
 
 class Object:
     def __init__(self, name:str='thing'):
+        # set object ID to a hopefully-unique identifier
+        self.id=abs(int((time()*10) % 10**10)-10**10)
         self.name=name
-    
+
     def __str__(self): return self.name
 
 class Armor(Object):
