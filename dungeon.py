@@ -9,6 +9,7 @@ class Mobile:
         self.name=name
         self.attack=attack
         self.defense=defense
+        self.armor=0
         self.dead=False
 
     def __str__(self): return self.name
@@ -19,7 +20,7 @@ class Monster(Mobile):
         Mobile.__init__(self, name, health, attack, defense)
 
 class PlayerCharacter(Mobile):
-    def __init__(self, name:str='adventurer', health:int=100, attack=10, defense=1) -> None:
+    def __init__(self, name:str='adventurer', health:int=100, attack=10, defense=5) -> None:
         Mobile.__init__(self, name, health, attack, defense)
 
 def d20_roll(n:int=1): return int(1+(random()*20//1))
@@ -38,10 +39,12 @@ def fight(me, them):
     sleep(3)
     damage = me.roll + me.attack - them.roll - them.defense
     if damage > 0:
+        damage=damage-them.armor
         print("It's a hit!")
         sleep(2)
         print(f'damage = ({me.roll} + {me.attack}) - ({them.roll} + {them.defense})')
-
+        sleep(2)
+        if them.armor > 0: print(f'{them}\'s armor prevents {them.armor} damage')
         print(f'{damage} damage done to {them}!')
         them.hit_points-=damage
         sleep(2)
@@ -54,15 +57,17 @@ def fight(me, them):
     if them.hit_points < 1:
         # oh them dead
         them.dead=True
-        sleep(3)
         print(f'the lifeless body of {them} hits the ground... dead.')
+        sleep(2)
+        print(f'{me} is victorious.')
         sleep(3)
-        print(f'{me} is victorious.')s
         if isinstance(me, PlayerCharacter):
             me.defense+=1
             me.attack+=1
+            me.armor+=1
             print(f'{me} attack raised to {me.attack}.')
             print(f'{me} defense raised to {me.defense}.')
+            print(f'{me} armor raised to {me.armor}.')
         sleep(6)
     else:
         print(f'{them} fights back!')
@@ -70,14 +75,20 @@ def fight(me, them):
         them.fight(me)
   else: print(f'{them} is aleady dead.')
 
-def main():
-    player=PlayerCharacter()
-    name=input(f'What is you name, {player.name}? > ')
-    if name != "": player.name=name
+def generate_player() -> PlayerCharacter:
+    print(" --- New character generation ---")
+    name='adventurer'
+    _name=input(f'What is you name, {name}? > ')
     sleep(0.5)
-    print(f'very well, {player}')
+    if _name != '': name=_name
+    print(f'very well, {name}')
+    player=PlayerCharacter(name)
+    return player
+
                 
     
+def main():
+    player=generate_player()
 
     monster_horde=[]
     monster_horde.append(Monster('goblin'))
