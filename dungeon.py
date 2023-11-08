@@ -11,24 +11,16 @@ class Mobile:
         self.defense=defense
         self.dead=False
 
+    def __str__(self): return self.name
+    def fight(self, other): fight(self, other)
 
 class Monster(Mobile):
     def __init__(self, name:str='monster', health:int=2, attack:int=1, defense:int=0):
         Mobile.__init__(self, name, health, attack, defense)
 
-    def __str__(self): return self.name
-    
-    def fight(self, other): fight(self, other)
-
-
 class PlayerCharacter(Mobile):
     def __init__(self, name:str='adventurer', health:int=100, attack=10, defense=1) -> None:
         Mobile.__init__(self, name, health, attack, defense)
-
-
-    def __str__(self): return self.name
-
-    def fight(self, other): fight(self, other)
 
 def d20_roll(n:int=1): return int(1+(random()*20//1))
 
@@ -65,11 +57,13 @@ def fight(me, them):
         sleep(3)
         print(f'the lifeless body of {them} hits the ground... dead.')
         sleep(3)
-        print(f'{me} is victorious.')
-        me.defense+=1
-        me.attack+=1
-        print(f'{me} attack raised to {me.attack}.')
-        print(f'{me} defense raised to {me.defense}.')
+        print(f'{me} is victorious.')s
+        if isinstance(me, PlayerCharacter):
+            me.defense+=1
+            me.attack+=1
+            print(f'{me} attack raised to {me.attack}.')
+            print(f'{me} defense raised to {me.defense}.')
+        sleep(6)
     else:
         print(f'{them} fights back!')
         print('---------------------')
@@ -87,9 +81,9 @@ def main():
 
     monster_horde=[]
     monster_horde.append(Monster('goblin'))
-    monster_horde.append(Monster('R.O.U.S.'))
+    monster_horde.append(Monster('giant rat'))
     monster_horde.append(Monster('skeleton', 20, 5))
-    monster_horde.append(Monster('Vampire', 40, 10, 4))
+    monster_horde.append(Monster('vampire', 40, 10, 4))
     monster_horde.append(Monster('dragon', 200, 20, 5))
 
     print([str(monster) for monster in monster_horde])
