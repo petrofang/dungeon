@@ -1,10 +1,7 @@
 from random import random
-from time import asctime, sleep
-from objects import *
-from mobiles import *
-from combat import *
+from time import  sleep
+from mobiles import Monster
 import players
-import pickle
 
 
 DEBUG=True
@@ -14,7 +11,7 @@ debug(f'{DEBUG}')
     
 
 def main():
-    player=players.load('rogue')
+    player=players.load()
     if not player:player=players.new()
 
     monster_horde=[]
@@ -30,11 +27,13 @@ def main():
     print('rhetorical question... we begin now:')
     sleep(1)
 
-    if player:
-        for monster in monster_horde:
-            print(f'{player} will now fight {monster}... to the death.')
-            sleep(3)
-            player.fight(monster)
-        players.save(player)
+    if not player:
+        player=Monster('dragon', 200, 20, 5)
+
+    for monster in monster_horde:
+        print(f'{player} will now fight {monster}... to the death.')
+        sleep(3)
+        player.fight(monster)
+    player.save()
 
 if __name__=='__main__': main()

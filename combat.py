@@ -1,7 +1,7 @@
 from random import random
 from time import sleep
 from objects import generate_armor as generate_armor
-import players
+from mobiles import Mobile
 
 DEBUG=True
 def debug(message): print(f'DEBUG:{message}') if DEBUG else None
@@ -10,7 +10,8 @@ debug(f'{DEBUG} @ {__name__}')
 def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
 def fight(me, them):
-  if not them.dead or me.dead:  
+  if isinstance(me, Mobile) and isinstance(them, Mobile):
+   if not (them.dead or me.dead):  
     me.roll=d20_roll()
     them.roll=d20_roll()
     print(f'{me} makes an attack at {them}!')
@@ -62,4 +63,3 @@ def fight(me, them):
         print(f'{them} fights back!')
         print('---------------------')
         them.fight(me)
-  else: print(f'{them} is aleady dead.')

@@ -1,7 +1,6 @@
 #mobiles.py
 
 from random import random
-from time import sleep
 from objects import Object
 
 DEBUG=True
