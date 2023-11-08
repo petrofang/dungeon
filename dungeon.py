@@ -3,29 +3,28 @@
 from random import random
 from time import sleep
 
-class mobile: pass
-    # TODO: make this a master class the monster and PC can inherit from
-
-class Monster:
-    def __init__(self, name:str='monster', hp:int=2, attack:int=1, defense:int=0):
-        self.hit_points = hp
-        self.name = name
-        self.attack = attack
-        self.defense = defense
+class Mobile: 
+    def __init__(self, name:str='', health=0, attack=0, defense=0):
+        self.hit_points=health
+        self.name=name
+        self.attack=attack
+        self.defense=defense
         self.dead=False
+
+
+class Monster(Mobile):
+    def __init__(self, name:str='monster', health:int=2, attack:int=1, defense:int=0):
+        Mobile.__init__(self, name, health, attack, defense)
 
     def __str__(self): return self.name
     
     def fight(self, other): fight(self, other)
 
 
-class PlayerCharacter:
-    def __init__(self, name:str='adventurer', hp:int=100, dmg=10, defense=1) -> None:
-        self.hit_points = hp
-        self.name = name
-        self.attack = dmg
-        self.defense = defense
-        self.dead=False
+class PlayerCharacter(Mobile):
+    def __init__(self, name:str='adventurer', health:int=100, attack=10, defense=1) -> None:
+        Mobile.__init__(self, name, health, attack, defense)
+
 
     def __str__(self): return self.name
 
@@ -79,7 +78,11 @@ def fight(me, them):
 
 def main():
     player=PlayerCharacter()
-    player.name=input(f'What is you name, {player.name}? > ')
+    name=input(f'What is you name, {player.name}? > ')
+    if name != "": player.name=name
+    sleep(0.5)
+    print(f'very well, {player}')
+                
     
 
     monster_horde=[]
@@ -90,14 +93,15 @@ def main():
     monster_horde.append(Monster('dragon', 200, 20, 5))
 
     print([str(monster) for monster in monster_horde])
-    input('are you ready to fight the monster hoard?')
-    print('rhetorical question... we begin:')
+    input('are you ready to fight the monster hoard? > ')
+    print('rhetorical question... we begin now:')
+    sleep(1)
 
 
     for monster in monster_horde:
         if not player.dead:
             print(f'{player} will now fight {monster}... to the death.')
-            sleep(5)
+            sleep(3)
             monster.fight(player)
     input()
 
