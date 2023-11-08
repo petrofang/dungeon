@@ -1,24 +1,12 @@
+from random import random
+from time import sleep
 from objects import *
 from mobiles import *
 from combat import *
- 
-from random import random
-from time import sleep
 
 DEBUG=True
 def debug(message): print(f'DEBUG:{message}') if DEBUG else None
-debug(DEBUG)
-
-
-def generate_player() -> PlayerCharacter:
-    print(" --- New character generation ---")
-    name='adventurer'
-    _name=input(f'What is you name, {name}? > ')
-    sleep(0.5)
-    if _name != '': name=_name
-    print(f'very well, {name}')
-    player=PlayerCharacter(name)
-    return player
+debug(f'{DEBUG} @ {__name__}')
 
 def main():
     player=generate_player()

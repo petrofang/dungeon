@@ -1,5 +1,10 @@
 from random import random
 from time import sleep
+from objects import generate_armor as generate_armor
+
+DEBUG=True
+def debug(message): print(f'DEBUG:{message}') if DEBUG else None
+debug(f'{DEBUG} @ {__name__}')
 
 def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
@@ -43,6 +48,7 @@ def fight(me, them):
         sleep(2)
         print(f'{me} is victorious.')
         sleep(3)
+        from mobiles import PlayerCharacter as PlayerCharacter
         if isinstance(me, PlayerCharacter):
             me.defense+=1
             me.attack+=1

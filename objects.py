@@ -2,6 +2,9 @@
 from random import random
 from time import sleep
 
+DEBUG=True
+def debug(message): print(f'DEBUG:{message}') if DEBUG else None
+debug(f'{DEBUG} @ {__name__}')
 
 class Object:
     def __init__(self, name:str='thing'):
