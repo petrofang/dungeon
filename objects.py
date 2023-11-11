@@ -26,7 +26,7 @@ class Armor(Object):
     armor_bonus=1
     def __init__(self, name='armor', armor_rating=1):
         Object.__init__(self, name)
-        self.rating=rating
+        self.rating=armor_rating
     
     def __add__(self, other):
         if type(other)==int: return self.armor_rating+other

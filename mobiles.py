@@ -17,7 +17,7 @@ class Party(list):
         self.append(mobile)
     
     def join(self, mobile:Mobile):
-        if isinstance(mobile, Mobile):self.append(mobile)
+        if isinstance(mobile, (Mobile,Party)):self.append(mobile)
 
 
 class Mobile(Object): 
