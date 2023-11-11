@@ -8,13 +8,21 @@ from mobiles import Mobile
 
 class PlayerCharacter(Mobile):
     def __init__(self, name:str='adventurer', hit_points:int=100, attack=10, defense=5) -> None:
-        super().__init__(self, name, hit_points, attack, defense)
+        Mobile.__init__(self, name, hit_points, attack, defense)
     
     def save(self):
         ''' save a player-character to file '''
         with open(f"./players/{self.name}.player", "wb") as f: 
             pickle.dump(self, f)
             print(f'{self} saved to file, probably...')
+    
+    def level_up(self):
+        self.attack+=1
+        self.defense+=1
+        print(f'{self} has leveled up.')
+        print(f'attack:{self.attack}')
+        print(f'defense:{self.defense}')
+        
     
 def load(player_name:str=None) -> PlayerCharacter:
     ''' load a player-character from file. '''

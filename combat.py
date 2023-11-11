@@ -1,23 +1,24 @@
 from random import random
 from time import sleep
-from objects import generate_armor as generate_armor
 from mobiles import Mobile
 
 DEBUG=True
-def debug(message): print(f'DEBUG:{message}') if DEBUG else None
-debug(f'{DEBUG} @ {__name__}')
+def debug(message): print(f'### {__name__} DEBUG:{message}') if DEBUG else None
+debug(f'{DEBUG}')
 
 def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
-def fight(me, them):
-    ''' intiate a fight against a Mobile or list of Mobiles '''
-    if isinstance(them, list):
-            for mobile in them:
-                if isinstance(mobile, Mobile):
-                    me.fight(mobile)  
+def attack(me:Mobile, them:Mobile):
+        if them.dead:
+        #    debug(f'*** {{them}} {them} is dead... should not be attacking them')
+        #    raise RuntimeError(them) # they shouldn't get this far? or do we just skip?
+            pass
 
-    elif isinstance(them, Mobile):
-        if not (them.dead or me.dead):  
+        elif me.dead:
+            debug(f'*** {{me}} {me} is dead... me should not be attacking.')
+            raise RuntimeError(me) # this definitely shouldn't be possible   
+          
+        else:
             me.roll=d20_roll()
             them.roll=d20_roll()
             print(f'{me} makes an attack at {them}!')
@@ -44,29 +45,56 @@ def fight(me, them):
                         print(f'{them}\'s{them.armor} prevents {them.armor.armor_rating} damage')
                     print(f'{damage} damage done to {them}!')
                     them.hit_points-=damage
-                sleep(1)
-                print(f'{them} HP remaining: {max(0, them.hit_points)}')
-                sleep(1)
             else:
                 print("Swing and a miss!")
-    
-
-            if them.hit_points < 1:
-                them.dead=True
-                print(f'the lifeless body of {them} hits the ground... dead.')
-                sleep(2)
-                print(f'{me} is victorious.')
-                sleep(3)
-                from players import PlayerCharacter 
+            
+            if killed(them): 
+                from players import PlayerCharacter
                 if isinstance(me, PlayerCharacter):
-                    me.defense+=1
-                    me.attack+=1
-                    me.equip_armor(generate_armor())
-                    print(f'{me} attack raised to {me.attack}.')
-                    print(f'{me} defense raised to {me.defense}.')
-                    print(f'{me} has equipped {me.armor}.')
-                sleep(6)
-            else:
-                print(f'{them} fights back!')
-                print('---------------------')
-                them.fight(me)
+                    me.level_up() 
+            else: fight(them, me)
+    
+def fight(me, them) -> Mobile:
+    ''' intiate a fight against a Mobile or list of Mobiles '''  
+    #TODO: handle grouping better... 
+    #IDEA: a "party" iterative object representing a group of Mobiles
+
+    if isinstance(me, list):
+        raise TypeError(me)
+        return     
+        for mobile in me:
+            if len(me)==1: 
+                debug(f'CONDENSING LIST: {me} only has 1 member left: {mobile}')
+                me=mobile
+            if isinstance(mobile, (Mobile)):
+                fight(mobile, them) 
+            else: 
+                debug(f'{mobile} is not a {Mobile}')
+                raise TypeError(mobile)
+            
+    if isinstance(them, list):
+        raise TypeError # NO PARTY COMBAT 4 U
+        return 
+        for mobile in them:
+            if len(them)==1: 
+                debug(f'CONDENSING LIST: {them} only has 1 member left: {mobile}')
+                them=mobile
+            if isinstance(mobile, (Mobile)):
+                fight(me, mobile)
+            else: 
+                debug(f'{mobile} is not a {Mobile}')
+                raise TypeError(mobile) # this should have been sorted out earlier...
+ 
+            
+    elif isinstance(me, Mobile) and isinstance(them, Mobile):
+        attack(me, them)
+
+def killed(them:Mobile) -> bool: 
+    ''' them.die() if sub-zero hp. returns True|False for them.dead'''
+    if them.dead:
+        return True
+    if them.hit_points <= 0:
+        them.die()
+        return True
+    else: 
+        return False

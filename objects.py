@@ -12,17 +12,21 @@ class Object:
         self.id=abs(int((time()*10) % 10**10)-10**10)
         self.name=name
 
+    def __del__(self):
+        print(f'{self} vanishes into thin air.')
+
     def __str__(self): return self.name
 
 class Weapon(Object):
-    def __init__(self, name: str = 'weapon'):
-        super().__init__(name)
+    def __init__(self, name: str = 'weapon', weapon_rating:int=1):
+        Object.__init__(name)
+        self.rating=weapon_rating
 
 class Armor(Object):
     armor_bonus=1
     def __init__(self, name='armor', armor_rating=1):
-        super().__init__(self, name)
-        self.armor_rating=armor_rating
+        Object.__init__(self, name)
+        self.rating=rating
     
     def __add__(self, other):
         if type(other)==int: return self.armor_rating+other

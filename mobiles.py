@@ -1,22 +1,42 @@
 #mobiles.py
 
 from random import random
+from time import sleep
+from typing import Iterable
 from objects import Object
 
 DEBUG=True
 def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
 debug(f'{DEBUG}')
 
+class Party(list):
+    from mobiles import Mobile
+    def __init__(self, name:str='party', *mobile:Mobile):
+        list.__init__(self)
+        self.name=name
+        self.append(mobile)
+    
+    def join(self, mobile:Mobile):
+        if isinstance(mobile, Mobile):self.append(mobile)
+
 
 class Mobile(Object): 
     def __init__(self, name:str='', hit_points=0, attack=0, defense=0):
-        super().__init__(self, name)
-        self.hit_points=hit_points
-        self.name=name
-        self.attack=attack
-        self.defense=defense
-        self.armor=None
-        self.dead=False
+        Object.__init__(self, name)
+        from objects import Armor
+        self.hit_points:int=hit_points
+        self.name:str=name
+        self.attack:int=attack
+        self.defense:int=defense
+        self.armor:Armor=None
+        self.weapon=None
+        self.dead:bool=False
+
+    def die(self):
+        if not self.dead:
+            print(f'{self} hits the ground... DEAD')
+            self.name=self.name + ' - (DEAD)'
+            self.dead=True
 
     def equip_armor(self, item):
         
