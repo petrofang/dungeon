@@ -59,7 +59,7 @@ def fight(me, them) -> Mobile:
     #TODO: handle grouping better... 
     #IDEA: a "party" iterative object representing a group of Mobiles
 
-    if isinstance(me, list):
+    if isinstance(me, list):  # PARTY COMBAT NOT IMPLEMENTED
         raise TypeError(me)
         return     
         for mobile in me:
@@ -72,8 +72,8 @@ def fight(me, them) -> Mobile:
                 debug(f'{mobile} is not a {Mobile}')
                 raise TypeError(mobile)
             
-    if isinstance(them, list):
-        raise TypeError # NO PARTY COMBAT 4 U
+    if isinstance(them, list): # PARTY COMBAT NOT IMPLEMENTED
+        raise TypeError(them) 
         return 
         for mobile in them:
             if len(them)==1: 
