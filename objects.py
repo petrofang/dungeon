@@ -1,6 +1,7 @@
 #objects.py
 from random import random
-from time import time
+
+def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
 DEBUG=True
 def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
@@ -9,6 +10,7 @@ debug(f'{DEBUG}')
 class Object:
     def __init__(self, name:str='thing'):
         # set object ID to a hopefully-unique identifier
+        from time import time
         self.id=abs(int((time()*10) % 10**10)-10**10)
         self.name=name
 
@@ -36,8 +38,6 @@ class Armor(Object):
     def equip(self): self.equipped=True
     
     def unequip(self): self.equipped=False
-    
-def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
 def generate_armor():
     Armor.armor_bonus+=2
