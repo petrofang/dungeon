@@ -1,16 +1,19 @@
 #mobiles.py
-
-from random import random
-from time import sleep
-from typing import Sequence, List
 from objects import Object,Armor,Weapon
 
-DEBUG=True
-def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+DEBUG=True   
+def debug(message): 
+    ''' Debug function.   DEBUG=True|False to toggle'''    
+    print(f'{__name__} DEBUG:{message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 class Mobile(Object): 
+    ''' a mobile (living, moving entity)
+    
+    base class for many other types of creature, including players.
+    '''
     def __init__(self, name:str='', hit_points=0, attack=0, defense=0):
+        ''''''
         super().__init__(name)
         self.hit_points:int=hit_points
         self.name:str=name
@@ -21,9 +24,12 @@ class Mobile(Object):
         self.dead:bool=False
 
     def die(self):
+        ''' how to die (a psuedo-deconstructor)'''
         if not self.dead:
             print(f'{self} hits the ground... DEAD')
             self.name=self.name + ' - (DEAD)'
+            if self.weapon: pass
+
             #maybe some loot function and/or creating a corpse object/container
             self.dead=True
 
@@ -57,11 +63,6 @@ class Party(list):
     
     def __add__(self, other:Mobile):
         if isinstance(other, Mobile|Party): self.append(other)  
-    
-    def join(self, mobile):
-        if   isinstance(mobile, Party):  self + mobile
-        elif isinstance(mobile, Mobile): self + mobile
-        return self
 
 class Monster(Mobile):
     '''a simple monster constructor...'''
