@@ -56,10 +56,15 @@ def new(name=None) -> PlayerCharacter:
         name=_name
         return PlayerCharacter(name)
     try:
-        _ = open(f'{name}.player', 'rb')
+        # check if the player name already exists by looking for their file
+        f = open(f'{name}.player', 'rb')
+        f.close()
         print('That name is already taken.')
+        # if so, just return a default adventurer
         return PlayerCharacter()
     except FileNotFoundError:
-        print(f'very well, {name}')
+        print(f'Very well, {name}...')
         player=PlayerCharacter(name)
         return player
+    else: 
+        f.close()
