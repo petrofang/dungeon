@@ -21,13 +21,13 @@ class Object:
 
 class Weapon(Object):
     def __init__(self, name: str = 'weapon', weapon_rating:int=1):
-        Object.__init__(name)
+        super().__init__(name)
         self.rating=weapon_rating
 
 class Armor(Object):
     armor_bonus=1
     def __init__(self, name='armor', armor_rating=1):
-        Object.__init__(self, name)
+        super().__init__(self, name)
         self.rating=armor_rating
     
     def __add__(self, other):
