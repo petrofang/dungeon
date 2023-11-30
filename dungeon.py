@@ -1,28 +1,35 @@
+def splash_screen():
+    print(r"""
+     _  Eventually, there may be a                                
+  __| |_   _ _ __   __ _  ___  ___  _ __  
+ / _` | | | | '_ \ / _` |/ _ \/ _ \| '_ \ 
+| (_| | |_| | | | | (_| |  __/ (_) | | | |
+ \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
+                   |___/ (c)2023 Petrofang                  
+""")
 
-from mobiles import global_mobiles, Mobile
-from objects import Armor, Weapon, global_objects
-from rooms import global_rooms
-import players
-
-DEBUG=True
+DEBUG=False
 INFO=False
-PROMPT='\n > '
+PROMPT='\n >> '
 def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
 def info(message): print(f'INFO: {message}') if INFO else None
 debug(f'{DEBUG}')
 info(f'{INFO}')
-
+    
 def main():
     from commands import CommandList
     while True:
         user_input = input(PROMPT).lower()
-        command, *args = user_input.split()
-        command = getattr(CommandList, command, None)
-        if command: 
-            command(*args) if args else command()
-        else: print(f'unknown command "{user_input}"')
+        if user_input:
+            command, *args = user_input.split()
+            command = getattr(CommandList, command, None)
+            if command: 
+                command(*args, me=me) if args else command(me=me)
+            else: print(f'Unknown command "{user_input}".')
+        else: print('Huh?')
 
 if __name__=='__main__': 
+    splash_screen()
     # prepare rooms
     from rooms import Room
     workshop=Room("Antron's Workshop", "A cottage contains a small but messy workshop of various projects in varying states of incompletion.")
@@ -31,6 +38,7 @@ if __name__=='__main__':
     outside.exits['north']      = workshop
 
     # load or generate a character:
+    import players
     user_input=input('(L)oad a character or (N)ew?' + PROMPT)
     if user_input.upper() == 'L': me = players.load()
     elif user_input.upper() == 'N': me = players.new()
@@ -38,6 +46,7 @@ if __name__=='__main__':
     if not me.room: me.room=workshop
 
     # prepare mobiles
+    from mobiles import Mobile
     Mobile('goblin', room=workshop)
     Mobile('ugly goblin', room=workshop)
     Mobile('giant rat', room=workshop)
@@ -60,6 +69,6 @@ if __name__=='__main__':
     workshop.look()
     outside.look()
 
-    # anything else before entering main game loop
+    # anything else before entering main game loop?
     
     main()
