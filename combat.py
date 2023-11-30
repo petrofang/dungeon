@@ -2,13 +2,17 @@ from random import random
 from time import sleep
 from mobiles import Mobile
 
-DEBUG=False 
+DEBUG=False
+INFO=False
 def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+def info(message):  print(f'{__name__} INFO: {message}')  if INFO  else None
 debug(f'{DEBUG}')
+info(f'{INFO}')
 
 def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
 
 def attack(me:Mobile, them:Mobile):
+    # TODO: attack as a mobile object method.
         if them.dead:
         #    debug(f'*** {{them}} {them} is dead... should not be attacking them')
         #    raise RuntimeError(them) # they shouldn't get this far? or do we just skip?
