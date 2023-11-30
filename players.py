@@ -1,20 +1,25 @@
-DEBUG=True
-def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+DEBUG=False
+INFO=False
+def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+def info(message):  print(f'{__name__} INFO: {message}')  if INFO  else None
 debug(f'{DEBUG}')
+info(f'{INFO}')
 
 import pickle
 from time import sleep
 from mobiles import Mobile
 
 class PlayerCharacter(Mobile):
-    def __init__(self, name:str='adventurer', hit_points:int=100, attack=10, defense=5) -> None:
-        super().__init__(name, hit_points, attack, defense)
-    
+    def __init__(self, name:str='adventurer', hit_points:int=100, attack=10, defense=5, **kwargs) -> None:
+        super().__init__(name, hit_points, attack, defense, **kwargs)
+        self.id=self.name
+
     def save(self):
         ''' save a player-character to file '''
+        # TODO: use os.path to get the right working directory.
         with open(f"./players/{self.name}.player", "wb") as f: 
             pickle.dump(self, f)
-            print(f'{self} saved to file, probably...')
+            print(f'{self} saved to file.')
     
     def level_up(self):
         self.attack+=1
@@ -58,13 +63,12 @@ def new(name=None) -> PlayerCharacter:
     try:
         # check if the player name already exists by looking for their file
         f = open(f'{name}.player', 'rb')
-        f.close()
-        print('That name is already taken.')
-        # if so, just return a default adventurer
-        return PlayerCharacter()
     except FileNotFoundError:
         print(f'Very well, {name}...')
         player=PlayerCharacter(name)
         return player
     else: 
         f.close()
+        print('That name is already taken.')
+        # if so, just return a default adventurer
+        return PlayerCharacter()
