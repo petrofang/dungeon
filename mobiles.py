@@ -1,12 +1,14 @@
 #mobiles.py
 
 from objects import Object,Armor,Weapon
-
 from rooms import Room
 
-DEBUG=True   
-def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+DEBUG=False
+INFO=False
+def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+def info(message):  print(f'{__name__} INFO: {message}')  if INFO  else None
 debug(f'{DEBUG}')
+info(f'{INFO}')
 
 global_mobiles={}
 
