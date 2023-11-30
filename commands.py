@@ -1,6 +1,6 @@
 from players import PlayerCharacter
 
-DEBUG=True
+DEBUG=False
 INFO=False
 def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
 def info(message): print(f'INFO: {message}') if INFO else None
@@ -43,6 +43,7 @@ class CommandList():
             me.room.look()
 
     def get(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Get <item> - Get an item from the room. '''
         room=me.room.objects
         item_name=args[-1] if args else None
         item=None
@@ -55,20 +56,19 @@ class CommandList():
                 me.inventory[item.id]=me.room.objects[item.id]
                 me.room.objects.pop(item.id)
                 print(f'{str(me).capitalize()} picks up {item}.')
+            else: 
+                print(f'You do not find {args[-1]} here.')
         elif not room: print('There is nothing here to get.')
-        elif not args: print('Get what now?')
-        elif item == None: print(f'You do not find {args[-1]} here.')
+        elif not args: print('Get what now?') 
         else: raise LookupError
 
     def drop(*args, me:PlayerCharacter=None, **kwargs):
-        debug(args)
+        ''' Drop <item> - Drop an item on the ground. '''
         if not args: 
             print('Drop what now?')
             return
         item=None
-        debug(f'{me.inventory}')
         for each_item in me.inventory.values():
-            debug(f'item: {each_item.name}')
             if args[-1] in each_item.name:
                 item = each_item
         if item is not None:
@@ -76,9 +76,19 @@ class CommandList():
             print(f'{me} drops {item} on the ground.')
         else:     
             print(f"{str(me).capitalize()} doesn't have {args[-1]} in inventory.")
-            
+
+    def inventory(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Inventory - Check inventory. '''
+        title=(f'  {str(me).capitalize()}\'s Inventory  ')
+        print(title)
+        print('-'*len(title))
+        for each_item in me.inventory.values():
+            print(each_item)
+
+    
 
     # abbreviations and shortcuts:
+    inv=inventory
     l=look
     q=quit
 
