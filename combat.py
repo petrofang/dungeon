@@ -2,8 +2,8 @@ from random import random
 from time import sleep
 from mobiles import Mobile
 
-DEBUG=True
-def debug(message): print(f'### {__name__} DEBUG:{message}') if DEBUG else None
+DEBUG=False 
+def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
@@ -60,7 +60,7 @@ def fight(me, them) -> Mobile:
     #IDEA: a "party" iterative object representing a group of Mobiles
 
     if isinstance(me, list):  # PARTY COMBAT NOT IMPLEMENTED
-        raise TypeError(me)
+        raise NotImplementedError(me)
         return     
         for mobile in me:
             if len(me)==1: 
@@ -72,19 +72,10 @@ def fight(me, them) -> Mobile:
                 debug(f'{mobile} is not a {Mobile}')
                 raise TypeError(mobile)
             
-    if isinstance(them, list): # PARTY COMBAT NOT IMPLEMENTED
-        raise TypeError(them) 
-        return 
-        for mobile in them:
-            if len(them)==1: 
-                debug(f'CONDENSING LIST: {them} only has 1 member left: {mobile}')
-                them=mobile
-            if isinstance(mobile, (Mobile)):
-                fight(me, mobile)
-            else: 
-                debug(f'{mobile} is not a {Mobile}')
-                raise TypeError(mobile) # this should have been sorted out earlier...
- 
+    if isinstance(them, list):
+        for each_mobile in them:
+            if isinstance(each_mobile, Mobile):
+                fight(me, each_mobile)
             
     elif isinstance(me, Mobile) and isinstance(them, Mobile):
         attack(me, them)
