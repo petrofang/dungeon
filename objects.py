@@ -1,44 +1,40 @@
 #objects.py
-from random import random
 
-def d20_roll(n:int=1): return n*(int(1+(random()*20//1)))
-
-DEBUG=True
-def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+DEBUG=False
+INFO=False
+def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+def info(message):  print(f'{__name__} INFO: {message}')  if INFO  else None
 debug(f'{DEBUG}')
+info(f'{INFO}')
 
-class Object:
-    def __init__(self, name:str='thing'):
-        # set object ID to a hopefully-unique identifier
-        from time import time
-        self.id=abs(int((time()*10) % 10**10)-10**10)
-        self.name=name
+global_objects = {}
+
+class Object: 
+    def __init__(self, name:str='thing', **kwargs):
+        from mobiles import Mobile
+        from rooms import Room
+        self.id = id(self)
+        self.name = name
+        info(f'{self.name} is created (ID:{self.id})')
+        if not isinstance(self, (Mobile, Room)): global_objects[self.id]=self
+        for key, val in kwargs: self[key]=val
 
     def __del__(self):
-        print(f'{self} vanishes into thin air.')
+        info(f'{self} vanishes into thin air.')
 
     def __str__(self): return self.name
 
 class Weapon(Object):
     def __init__(self, name: str = 'weapon', weapon_rating:int=1):
         super().__init__(name)
-        self.rating=weapon_rating
+        self.rating = weapon_rating
 
 class Armor(Object):
     armor_bonus=1
-    def __init__(self, name='armor', armor_rating=1):
-        super().__init__(self, name)
-        self.rating=armor_rating
+    def __init__(self, name='armor', armor_rating:int=1):
+        super().__init__(name)
+        self.rating = armor_rating
     
-    def __add__(self, other):
-        if type(other)==int: return self.armor_rating+other
-        if type(other)==Object: return print(f'{self} and {other} cannot be combined')
-        else: return None
-
-    def equip(self): self.equipped=True
-    
-    def unequip(self): self.equipped=False
-
 def generate_armor():
     Armor.armor_bonus+=2
     armor_rating=Armor.armor_bonus
