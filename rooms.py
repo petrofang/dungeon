@@ -1,37 +1,68 @@
 # rooms.py
 from objects import Object
 
-DEBUG=True
+DEBUG=False
+INFO=False
 def debug(message): print(f'{__name__} DEBUG:{message}') if DEBUG else None
+def info(message): print(f'INFO:{message}') if INFO else None
+info(f'{INFO}')
 debug(f'{DEBUG}')
 
+global_rooms={}
+
 class Room(Object):
-    def __init__(self, name='room', description='This is a newly-instantiated room area.'):
+    def __init__(self, name:str='Room', description:str='An empty area.', **exits):
         super().__init__(name)
         self.description = description
-        self.objects = []  # the room's "inventory"
-        self.inventory = self.objects # if we forget that rooms don't have inventory
-        self.mobiles = []  # who is in the room
-        self.exits={} # e.g. {north:<rooms.Object.Room object>,}
+        self.objects = {}  # [obj.id]=obj
+        self.mobiles = {}  # [mob.id]=mob
+        self.exits={} # [direction]=room.id 
+        for direction,room_id in exits:
+            self.exits[direction]=room_id
+        global_rooms[self.id]=self
 
     def look(self):
-        print(f'[{self.name}]')
-        description=self.description
+        print(f'[{self.name}]', end="")
+        if INFO: print('ID: {self.id})')
+        else: print()
+        print(f'    {self.description}', end=' ')
         if self.objects:
-            obj_list='There is '
-            for index, each in enumerate(self.objects, start=1):
-                if index < len(self.objects):
-                    obj_list += f'{each.name}, '
-                elif index == len(self.objects):
-                    obj_list += f'{each.name}.'
-                else: raise ValueError # wait how did we get here?
-
+            object_list=list(self.objects.values())
+            print(f'There is:', end="")
+            for index, item in enumerate(object_list,1):
+                print(f" {item.name}", end="")
+                if index < len(object_list):
+                    print(',', end='')
+                else:
+                    print('.')
         if self.mobiles:
-            mob_list=f'Also here: '
-            for index, each in enumerate(self.mobiles, start=1):
-                if index < len(self.mobiles):
-                    mob_list += f'{each.name}, '
-                elif index == len(self.mobiles):
-                    mob_list += f'{each.name}.'
-                else: raise ValueError # wait how did we get here?
-        print(f'{description} {obj_list}\n{mob_list}')
+            print('Also here:', end="")
+            mobile_list=list(self.mobiles.values())
+            for index, mobile in enumerate(mobile_list,1):
+                print(f" {mobile.name}", end="")
+                if index < len(mobile_list):
+                    print(',', end='')
+                else:
+                    print('.')
+        else: print()
+        print('Exits: ', end='')
+        if not self.exits: print('None')
+        else:
+            for direction, room in self.exits.items():
+                print(f'{direction}: {room.name}')
+        print()
+
+def main():
+    from objects import Weapon, Armor
+    workshop=Room("Antron's Workshop", "A cottage contains a small but messy workshop of various projects in varying states of incompletion.")
+    outside=Room("Potter's Field", 'The "Potter\'s field" is a place where potters dug for clay, and thus a place conveniently full of trenches and holes for the burial of strangers.')
+    workshop.exits['south']     = outside
+    outside.exits['north']      = workshop
+    sword=Weapon('a rusty old sword')
+    armor=Armor('some rusty old armor')
+    workshop.objects[sword.id] = sword
+    workshop.objects[armor.id] = armor
+    workshop.look()
+    outside.look()
+
+if __name__=="__main__": main()
