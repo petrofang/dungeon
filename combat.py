@@ -36,7 +36,7 @@ def attack(me:Mobile, them:Mobile):
             damage = me.roll + me.attack - them.roll - them.defense
             if damage > 0:
                 if them.armor:
-                    armor_rating=them.armor.armor_rating
+                    armor_rating=them.armor.rating
                     damage=max(0, damage - armor_rating)
                 if damage <= 0:
                     print(f'a dull thud as it hits {them}\'s {them.armor}')
@@ -46,7 +46,7 @@ def attack(me:Mobile, them:Mobile):
                     print(f'damage = ({me.roll} + {me.attack}) - ({them.roll} + {them.defense})')
                     sleep(1)
                     if them.armor: 
-                        print(f'{them}\'s{them.armor} prevents {them.armor.armor_rating} damage')
+                        print(f'{them}\'s{them.armor} prevents {them.armor.rating} damage')
                     print(f'{damage} damage done to {them}!')
                     them.hit_points-=damage
             else:
