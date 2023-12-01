@@ -169,8 +169,18 @@ class CommandList():
         else:     
             print(f"{str(me).capitalize()} doesn't have {args[-1]} equipped.")
 
+    def fight():
+        return NotImplementedError
+
+    def save():
+        return NotImplementedError
+
+    def go(): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
+        return NotImplementedError
+
+
+
     # abbreviations and shortcuts:
-    
     inv=inventory
     l=look
     q=quit
