@@ -10,7 +10,7 @@ def splash_screen():
 
 DEBUG=False
 INFO=False
-PROMPT='\n >> '
+PROMPT=' >> '
 def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
 def info(message): print(f'INFO: {message}') if INFO else None
 debug(f'{DEBUG}')
@@ -18,6 +18,7 @@ info(f'{INFO}')
     
 def main():
     from commands import CommandList
+    print(f'Hint: type HELP for a list of commands')
     while True:
         user_input = input(PROMPT).lower()
         if user_input:
@@ -67,7 +68,6 @@ if __name__=='__main__':
     workshop.objects[sword.id] = sword
     workshop.objects[armor.id] = armor
     workshop.look()
-    outside.look()
 
     # anything else before entering main game loop?
     

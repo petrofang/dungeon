@@ -30,12 +30,7 @@ class Weapon(Object):
         self.rating = weapon_rating
 
 class Armor(Object):
-    armor_bonus=1
     def __init__(self, name='armor', armor_rating:int=1):
         super().__init__(name)
         self.rating = armor_rating
     
-def generate_armor():
-    Armor.armor_bonus+=2
-    armor_rating=Armor.armor_bonus
-    return Armor(f'+{armor_rating} armor', armor_rating)

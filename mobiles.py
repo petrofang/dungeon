@@ -44,9 +44,10 @@ class Mobile(Object):
             self.dead=True
 
     def get(self, item:Object=None):
+        ''' Have the mobile get an item from the room. '''
         if not item: print('Get what now?')
         if isinstance(item, (Mobile, Room)): 
-            print(f'{self} cannot carry {item}')
+            print(f'{self} cannot carry {item}.')
         else:    
             if item in self.room.objects.values():
                 self.inventory[item.id]=self.room.objects.pop(item.id)
