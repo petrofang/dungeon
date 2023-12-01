@@ -87,6 +87,35 @@ class CommandList():
         for each_item in me.inventory.values():
             print(each_item)
 
+    def wear(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Wear <item> - Wear an item. '''
+        item=None
+        for each_item in me.inventory.values():
+            if args[-1] in each_item.name:
+                item = each_item
+        if isinstance(item, Armor): 
+            CommandList.equip(*args, me=me)
+        else:
+            print(f'You cannot wear that.')
+
+    def remove(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Remove <item> - Remove a worn item. '''
+        if args[-1] in me.armor.name:
+            CommandList.unequip(*args, me=me)
+        else:
+            print(f'You are not wearing that.')
+
+    def wield(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Wield <weapon> - Equip a weapon. '''
+        item=None
+        for each_item in me.inventory.values():
+            if args[-1] in each_item.name:
+                item = each_item
+        if isinstance(item, Weapon): 
+            CommandList.equip(*args, me=me)
+        else:
+            print(f'You cannot wield that.')
+                  
     def equip(*args, me:PlayerCharacter=None, **kwargs):
         ''' Equip       - Show equipped items.
  Equip <item> - Equip an item. '''
@@ -120,6 +149,7 @@ class CommandList():
             print(f"{str(me).capitalize()} doesn't have {args[-1]} in inventory.")
 
     def unequip(*args, me:PlayerCharacter=None, **kwargs):
+        ''' Unequip <item> - Unequip an item or weapon. '''
         if not args: 
             print('Unequip what now?')
             return
@@ -140,6 +170,7 @@ class CommandList():
             print(f"{str(me).capitalize()} doesn't have {args[-1]} equipped.")
 
     # abbreviations and shortcuts:
+    
     inv=inventory
     l=look
     q=quit
