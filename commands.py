@@ -9,9 +9,17 @@ debug(f'{DEBUG}')
 info(f'{INFO}')
 
 class CommandList():
+    ''' This is the master list of all player commands. 
+
+    Usage: 
+
+command, *args = input().split()
+command = getattr(CommandList, command, None)
+if command: command(*args, me=player) if args else command(me=player)
+'''
     def __no_dunders(command:str): 
         ''' A filter to show only public commands on the help list.'''
-        return not command.startswith('_')
+        return not command.startswith('__')
 
     def help(command=None, *args, **kwargs):
         ''' Help           - get a list of commands.
@@ -31,10 +39,6 @@ class CommandList():
         # TODO: not so unceremoniously
         ''' Quit - quit the game (without saving). '''
         quit()
-
-    def _whoami(*args, me:PlayerCharacter=None, **kwargs):
-        ''' WhoAmI - Print the name of the player who called the function.'''
-        print(f'You are {str(me).capitalize()}.') if me else UserWarning('Who even are you?')
 
     def look(*args, me:PlayerCharacter=None, **kwargs):
         ''' Look - take a look at the place you are in. '''
