@@ -46,7 +46,7 @@ def attack(me:Mobile, them:Mobile):
                     print(f'damage = ({me.roll} + {me.attack}) - ({them.roll} + {them.defense})')
                     sleep(1)
                     if them.armor: 
-                        print(f'{them}\'s{them.armor} prevents {them.armor.rating} damage')
+                        print(f'{them.name.capitalize()}\'s {them.armor} prevents {them.armor.rating} damage')
                     print(f'{damage} damage done to {them}!')
                     them.hit_points-=damage
             else:

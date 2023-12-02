@@ -19,7 +19,7 @@ if command: command(*args, me=player) if args else command(me=player)
 '''
     def __no_dunders(command:str): 
         ''' A filter to show only public commands on the help list.'''
-        return not command.startswith('__')
+        return not command.startswith('_')
 
     def help(command=None, *args, **kwargs):
         ''' Help           - get a list of commands.

@@ -34,14 +34,17 @@ class Mobile(Object):
         from players import PlayerCharacter
         from objects import Corpse
         ''' how to die (a psuedo-deconstructor)'''
-        print(f'{self} hits the ground... DEAD')
+        print(f'{self.name.capitalize()} hits the ground... DEAD')
         if type(self) is not PlayerCharacter:
             if self.weapon:
+                print(f'{self.name.capitalize()} drops {self.weapon}')
                 self.room.objects[self.weapon.id]=self.weapon
             if self.armor:
+                print(f'{self.name.capitalize()} drops {self.armor}')
                 self.room.objects[self.armor.id]=self.armor
             if self.inventory:
                 for item in self.inventory:
+                    print(f'{self.name.capitalize()} drops {item}.')
                     self.room.objects[item.id]=self.inventory.pop(item.id)
             Corpse(self.name, self.room)
             self.room.mobiles.pop(self.id)

@@ -32,8 +32,8 @@ class Armor(Object):
         self.rating = armor_rating   
 
 class Corpse(Object):
-    from rooms import Room
-    def __init__(self, name:str='corpse', room:Room=None):
+#    from rooms import Room    ### CIRCULAR DEPENDENCY
+    def __init__(self, name:str='corpse', room=None):
         super().__init__(name)
         self.name = f"{name}'s corpse" if self.name else "corpse"
         room.objects[self.id] = self

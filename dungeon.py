@@ -18,6 +18,7 @@ info(f'{INFO}')
     
 def main():
     from commands import CommandList
+    me.room.look()
     print(f'Hint: type HELP for a list of commands')
     while True:
         user_input = input(PROMPT).lower()
@@ -44,13 +45,12 @@ if __name__=='__main__':
     if user_input.upper() == 'L': me = players.load()
     elif user_input.upper() == 'N': me = players.new()
     else: raise UserWarning('Listen: if you cannot follow basic prompts, this game is not for you.')
-    if not me.room: me.room=workshop
-    me.room.look()
-
+    if not hasattr(me, "room") or me.room is None: me.room=workshop
+    
     # prepare mobiles
     from mobiles import Mobile
-    Mobile('goblin', room=workshop)
-    Mobile('ugly goblin', room=workshop)
+    goblin=Mobile('goblin', room=workshop)
+    ugly_goblin=Mobile('ugly goblin', room=workshop)
     Mobile('giant rat', room=workshop)
     Mobile('sickly kobold',5)
     Mobile('skeleton', 20, 5)
@@ -66,8 +66,8 @@ if __name__=='__main__':
     from objects import Weapon, Armor
     sword=Weapon('a rusty old sword')
     armor=Armor('some rusty old armor')
-    workshop.objects[sword.id] = sword
-    workshop.objects[armor.id] = armor
+    ugly_goblin.weapon = sword
+    goblin.armor = armor
 
     # anything else before entering main game loop?
     
