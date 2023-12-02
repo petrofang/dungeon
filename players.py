@@ -17,6 +17,8 @@ class PlayerCharacter(Mobile):
     def save(self):
         ''' save a player-character to file '''
         # TODO: use os.path to get the right working directory.
+        # FIXME: create players directory if not found
+        # FIXME: don't save self.room -- but do save the room ID
         with open(f"./players/{self.name}.player", "wb") as f: 
             pickle.dump(self, f)
             print(f'{self} saved to file.')
@@ -50,7 +52,7 @@ def load(player_name:str=None) -> PlayerCharacter:
     return player
 
 
-def new(name=None) -> PlayerCharacter:
+def new(name:str=None) -> PlayerCharacter:
     ''' generate a new player-character object '''
     print(" --- New character generation ---")
     if name==None: 
