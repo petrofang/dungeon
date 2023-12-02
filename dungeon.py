@@ -45,6 +45,7 @@ if __name__=='__main__':
     elif user_input.upper() == 'N': me = players.new()
     else: raise UserWarning('Listen: if you cannot follow basic prompts, this game is not for you.')
     if not me.room: me.room=workshop
+    me.room.look()
 
     # prepare mobiles
     from mobiles import Mobile
@@ -67,7 +68,6 @@ if __name__=='__main__':
     armor=Armor('some rusty old armor')
     workshop.objects[sword.id] = sword
     workshop.objects[armor.id] = armor
-    workshop.look()
 
     # anything else before entering main game loop?
     
