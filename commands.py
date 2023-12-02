@@ -73,6 +73,12 @@ class CommandList():
         for each_item in me.inventory.values():
             if args[-1] in each_item.name:
                 item = each_item
+        if item is None and args[-1] in me.weapon.name:
+            item=me.weapon
+            me.room.objects[item.id]=item
+            me.weapon=None
+            print(f'{str(me).capitalize()} drops {item} on the ground.')
+            return
         if item is not None:
             me.room.objects[item.id]=me.inventory.pop(item.id)
             print(f'{str(me).capitalize()} drops {item} on the ground.')
@@ -117,7 +123,7 @@ class CommandList():
             print(f'You cannot wield that.')
                   
     def equip(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Equip       - Show equipped items.
+        ''' Equip        - Show equipped items.
  Equip <item> - Equip an item. '''
         if not args: 
             title=(f'  {str(me).capitalize()}\'s Equipment  ')
@@ -153,7 +159,6 @@ class CommandList():
         if not args: 
             print('Unequip what now?')
             return
-        item=None
         if me.armor:
           if args[-1] in me.armor.name:
             me.inventory[me.armor.id]=me.armor
@@ -169,19 +174,86 @@ class CommandList():
         else:     
             print(f"{str(me).capitalize()} doesn't have {args[-1]} equipped.")
 
-    def fight():
-        return NotImplementedError
+    def fight(*args, me=None, **kwargs):
+        ''' Fight <target> - Initiate combat.'''
+        room=me.room.mobiles
+        mob_name=args[-1] if args else None
+        mob=None
+        if room and args:
+            for each in room.values():
+                if mob_name in each.name and each.dead==False:
+                    mob=each
+                    break
+            if mob is not None:
+                from combat import fight
+                print(f'{str(me).capitalize()} lunges at {mob}.')
+                fight(me, mob)
+            else: 
+                print(f'There is no {args[-1]} here.')
+        elif not room: print('There is nobody here to fight.')
+        elif not args: print('Fight who now?') 
 
-    def save():
-        return NotImplementedError
+    def save(*args, me:PlayerCharacter=None, **kwargs):
+        # TODO: differenciate between saving the character and saving the game
+        #       . . . or not? single-player, who cares?
+        me.save()
 
-    def go(): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
-        return NotImplementedError
+    def go(*args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
+        ''' Go <direction> - move into the next room in <direction>
+     for cardinal directions you can just type the direction, eg:
+     <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>'''
+        dir=args[0]
+        if dir=='n':dir='north'
+        if dir=='ne':dir='northeast'
+        if dir=='e':dir='east'
+        if dir=='se': dir='southeast'
+        if dir=='s':dir='south'
+        if dir=='sw':dir='southwest'
+        if dir=='w':dir='west'
+        if dir=='nw':dir='northwest'
+        if dir in me.room.exits:
+            # move player to the room in that direction
+            print(f'{me.name.capitalize()} heads {dir}.')
+            me.room=me.room.exits[dir]
+            me.room.look()
 
-
-
+    def north(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO NORTH.'''
+        CommandList.go('north', me=me)
+    def northeast(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO NORTHEAST.'''
+        CommandList.go('northeast', me=me)
+    def east(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO EAST.'''
+        CommandList.go('east', me=me)
+    def southeast(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO SOUTHEAST.'''
+        CommandList.go('southeast', me=me)
+    def south(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO SOUTH.'''
+        CommandList.go('south', me=me)
+    def southwest(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO SOUTHWEST.'''
+        CommandList.go('southwest', me=me)
+    def west(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO WEST.'''
+        CommandList.go('west', me=me)
+    def northwest(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO NORTHWEST'''
+        CommandList.go('northwest', me=me)
+    
+    
+        
     # abbreviations and shortcuts:
     inv=inventory
+    n=north
+    ne=northeast
+    e=east
+    se=southeast
+    s=south
+    sw=southwest
+    w=west
+    nw=northwest
     l=look
     q=quit
 
