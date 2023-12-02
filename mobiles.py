@@ -17,7 +17,7 @@ class Mobile(Object):
     
     base class for many other types of creature, including players.
     '''
-    def __init__(self, name:str='', hit_points:int=1, attack:int=0, defense:int=0, room:Room=None):
+    def __init__(self, name:str='NPC', hit_points:int=1, attack:int=0, defense:int=0, room:Room=None):
         super().__init__(name)
         self.hit_points:int=hit_points
         self.name:str = name
@@ -25,56 +25,50 @@ class Mobile(Object):
         self.defense:int = defense
         self.armor:Armor = None
         self.weapon:Weapon = None
-        self.dead:bool = False
-        self.inventory:dict = {}
+        self.dead:bool = False      # TODO: get rid of this
+        self.inventory:dict = {}    # would this be better as a list?
         self.room:Room = room 
         if isinstance(self.room, Room): self.room.mobiles[self.id]=self
-        # FIXME: change this when we add multiplayer:
-        from players import PlayerCharacter
-        if not isinstance(self, PlayerCharacter): global_mobiles[self.id] = self
 
     def die(self):
+        from players import PlayerCharacter
+        from objects import Corpse
         ''' how to die (a psuedo-deconstructor)'''
-        if not self.dead:
-            print(f'{self} hits the ground... DEAD')
-            self.name=self.name + ' - (DEAD)'
-            if self.weapon: pass
+        print(f'{self} hits the ground... DEAD')
+        if type(self) is not PlayerCharacter:
+            if self.weapon:
+                self.room.objects[self.weapon.id]=self.weapon
+            if self.armor:
+                self.room.objects[self.armor.id]=self.armor
+            if self.inventory:
+                for item in self.inventory:
+                    self.room.objects[item.id]=self.inventory.pop(item.id)
+            Corpse(self.name, self.room)
+            self.room.mobiles.pop(self.id)
+        else:
+            # PlayerCharacter death:
+            quit()
 
-            # TODO: maybe some loot function and/or creating a corpse object/container
-            self.dead=True
 
-    def get(self, item:Object=None):
-        ''' Have the mobile get an item from the room. '''
-        if not item: print('Get what now?')
-        if isinstance(item, (Mobile, Room)): 
-            print(f'{self} cannot carry {item}.')
-        else:    
-            if item in self.room.objects.values():
-                self.inventory[item.id]=self.room.objects.pop(item.id)
-                print(f'{self} picks up {item}.')
+    def get(self, item:Object):
+        if item in self.room.objects.values():
+            self.inventory[item.id]=self.room.objects.pop(item.id)
+            print(f'{self} picks up {item}.')
     
-    def drop(self, item:Object=None):
-        if not item: print('Drop what now?')
+    def drop(self, item:Object):
         if item not in self.inventory.values():
-            print(f"{self} doesn't have {item} in inventory.")
+            raise UnboundLocalError(f"{self} doesn't have {item} in inventory.")
         else:
             self.room.objects[item.id]=self.inventory.pop(item.id)
             print(f'{self} drops {item} on the ground.')
 
     def equip(self, item:Object=None):
         if isinstance(item, (Armor, Weapon)):
-            print(f'{self.name} equips {item}.')
             if isinstance(item, Armor): self.armor=item
             elif isinstance(item, Weapon): self.weapon=item
-        elif item==None:
-            print(f'What would you like to equip {self} with?')
-        else:
-            print(f'{str(item)} is not equipable.')
+            print(f'{self.name} equips {item}.')
 
     def unequip(self, item:Object=None):
-        if item is None:
-            print('Unequip what?')
-            return
         if self.armor is item:
             self.inventory[item.id]=item
             self.armor=None
