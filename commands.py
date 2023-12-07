@@ -94,8 +94,10 @@ if command: command(*args, me=player) if args else command(me=player)
         title=(f'  {str(me).capitalize()}\'s Inventory  ')
         print(title)
         print('-'*len(title))
-        for each_item in me.inventory.values():
-            print(each_item)
+        if me.inventory: 
+            for each_item in me.inventory.values():
+                print(each_item)
+        else: print('None')
 
     def wear(*args, me:PlayerCharacter=None, **kwargs):
         ''' Wear <item> - Wear an item. '''
