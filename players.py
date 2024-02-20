@@ -1,3 +1,4 @@
+#players.py
 DEBUG=False
 INFO=False
 def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
@@ -7,7 +8,7 @@ info(f'{INFO}')
 
 import pickle
 from time import sleep
-from mobiles import Mobile
+from mobiles_OLD import Mobile
 
 class PlayerCharacter(Mobile):
     def __init__(self, name:str='adventurer', hit_points:int=100, attack=10, defense=5, **kwargs) -> None:

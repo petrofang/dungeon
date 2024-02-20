@@ -1,4 +1,5 @@
-from objects import Armor, Weapon
+#commands.py
+from objects_OLD import Armor, Weapon
 from players import PlayerCharacter
 
 DEBUG=False

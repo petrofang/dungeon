@@ -33,7 +33,7 @@ def main():
 if __name__=='__main__': 
     splash_screen()
     # prepare rooms
-    from rooms import Room
+    from rooms_OLD import Room
     workshop=Room("Antron's Workshop", "A cottage contains a small but messy workshop of various projects in varying states of incompletion.")
     outside=Room("Potter's Field", 'The "Potter\'s field" is a place where potters have dug for clay, and thus a place conveniently full of trenches and holes for the burial of strangers.')
     workshop.exits['south']     = outside
@@ -48,7 +48,7 @@ if __name__=='__main__':
     if not hasattr(me, "room") or me.room is None: me.room=workshop
     
     # prepare mobiles
-    from mobiles import Mobile
+    from mobiles_OLD import Mobile
     goblin=Mobile('goblin', room=workshop)
     ugly_goblin=Mobile('ugly goblin', room=workshop)
     Mobile('giant rat', room=workshop)
@@ -63,7 +63,7 @@ if __name__=='__main__':
     Mobile('dragon', 200, 20, 5)
 
     # prepare objects
-    from objects import Weapon, Armor
+    from objects_OLD import Weapon, Armor
     sword=Weapon('a rusty old sword')
     armor=Armor('some rusty old armor')
     ugly_goblin.weapon = sword
