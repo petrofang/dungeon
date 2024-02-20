@@ -31,7 +31,7 @@ class Mobile(Object):
         if isinstance(self.room, Room): self.room.mobiles[self.id]=self
 
     def die(self):
-        from players import PlayerCharacter
+        from players_OLD import PlayerCharacter
         from objects_OLD import Corpse
         ''' how to die (a psuedo-deconstructor)'''
         print(f'{self.name.capitalize()} hits the ground... DEAD')
