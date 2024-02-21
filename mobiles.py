@@ -1,5 +1,4 @@
-from dungeon_data import Base, Column, Integer, String, session, relationship, ForeignKey
-from objects import Object
+from dungeon_data import Base, Column, Integer, String, relationship, ForeignKey
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -15,7 +14,7 @@ class Mobile(Base):
     armor = Column(Integer)
 
     def __str__(self): return self.name
-    
+
 class MobileInventory(Base):
     __tablename__ = "Mobile_Inventory"
 
