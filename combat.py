@@ -54,7 +54,7 @@ def attack(me:Mobile, them:Mobile):
                 print("Swing and a miss!")
             
             if killed(them): 
-                from players import PlayerCharacter
+                from players_OLD import PlayerCharacter
                 if isinstance(me, PlayerCharacter):
                     me.level_up() 
             else: fight(them, me)
