@@ -171,8 +171,6 @@ if command: command(*args, me=player) if args else command(me=player)
             print(f"You don't have any armor that matches your request.")
 
         return False
-
-#################### TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
                           
     def unequip(*args, me: PlayerCharacter) -> bool:
         """Unequips an item from the mobile's equipment and puts it back into inventory."""
@@ -206,6 +204,12 @@ if command: command(*args, me=player) if args else command(me=player)
         print(f"{me.name} unequips {unequipped_item.item.name}.")
         return True
 
+
+
+#################### TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
+
+
+
     def fight(*args, me=None, **kwargs):
         ''' Fight <target> - Initiate combat.'''
         room=me.room.mobiles
@@ -224,11 +228,6 @@ if command: command(*args, me=player) if args else command(me=player)
                 print(f'There is no {args[-1]} here.')
         elif not room: print('There is nobody here to fight.')
         elif not args: print('Fight who now?') 
-
-    def save(*args, me:PlayerCharacter=None, **kwargs):
-        # TODO: differenciate between saving the character and saving the game
-        #       . . . or not? single-player, who cares?
-        me.save()
 
     def go(*args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
         ''' Go <direction> - move into the next room in <direction>
