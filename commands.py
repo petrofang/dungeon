@@ -1,13 +1,7 @@
 #commands.py
-from objects_OLD import Armor, Weapon
+from dungeon_data import session
+import rooms, objects, mobiles, players
 from players import PlayerCharacter
-
-DEBUG=False
-INFO=False
-def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
-def info(message): print(f'INFO: {message}') if INFO else None
-debug(f'{DEBUG}')
-info(f'{INFO}')
 
 class CommandList():
     ''' This is the master list of all player commands. 
@@ -43,29 +37,36 @@ if command: command(*args, me=player) if args else command(me=player)
 
     def look(*args, me:PlayerCharacter=None, **kwargs):
         ''' Look - take a look at the place you are in. '''
-        if not me.room:
-            print('You are nowhere. You do not have a location yet.')
-        else:
-            me.room.look()
+        rooms.look(me.room_id)
 
     def get(*args, me:PlayerCharacter=None, **kwargs):
         ''' Get <item> - Get an item from the room. '''
         # TODO: "get all"
-        room=me.room.objects
+         # Join Room_Inventory with Objects to get Object instances
+        room_inventory = (
+            session.query(objects.Object)
+            .join(rooms.RoomInventory, rooms.RoomInventory.object_id == objects.Object.id)
+            .filter(rooms.RoomInventory.room_id == me.room_id)
+            .all()
+        )
         item_name=args[-1] if args else None
         item=None
-        if room and args:
-            for each_item in room.values():
+        if room_inventory and args:
+            for each_item in room_inventory:
                 if item_name in each_item.name:
                     item=each_item
                     break
             if item is not None:
-                me.inventory[item.id]=me.room.objects[item.id]
-                me.room.objects.pop(item.id)
+
+                # Remove the item from Room_Inventory
+                session.query(rooms.RoomInventory).filter(rooms.RoomInventory.object_id == item.id).delete()
+                # Add the item to Mobile_Inventory
+                session.add(mobiles.MobileInventory(mobile_id=me.id, object_id=item.id))
+                session.commit()  # Commit the changes to the database
                 print(f'{str(me).capitalize()} picks up {item}.')
             else: 
                 print(f'There is no {args[-1]} here.')
-        elif not room: print('There is nothing here to get.')
+        elif not room_inventory: print('There is nothing here to get.')
         elif not args: print('Get what now?') 
 
     def drop(*args, me:PlayerCharacter=None, **kwargs):
@@ -75,17 +76,20 @@ if command: command(*args, me=player) if args else command(me=player)
             print('Drop what now?')
             return
         item=None
-        for each_item in me.inventory.values():
+         # Join Mobile_Inventory with Objects to get Object instances
+        mobile_inventory = (
+            session.query(objects.Object)
+            .join(mobiles.MobileInventory, mobiles.MobileInventory.object_id == objects.Object.id)
+            .filter(mobiles.MobileInventory.mobile_id == me.id)
+            .all())
+        
+        for each_item in mobile_inventory:
             if args[-1] in each_item.name:
                 item = each_item
-        if item is None and args[-1] in me.weapon.name:
-            item=me.weapon
-            me.room.objects[item.id]=item
-            me.weapon=None
-            print(f'{str(me).capitalize()} drops {item} on the ground.')
-            return
         if item is not None:
-            me.room.objects[item.id]=me.inventory.pop(item.id)
+            session.query(mobiles.MobileInventory).filter(mobiles.MobileInventory.object_id == item.id).delete()
+            session.add(rooms.RoomInventory(room_id=me.room_id, object_id=item.id))
+            session.commit()
             print(f'{str(me).capitalize()} drops {item} on the ground.')
         else:     
             print(f"{str(me).capitalize()} doesn't have {args[-1]} in inventory.")
@@ -95,8 +99,13 @@ if command: command(*args, me=player) if args else command(me=player)
         title=(f'  {str(me).capitalize()}\'s Inventory  ')
         print(title)
         print('-'*len(title))
-        if me.inventory: 
-            for each_item in me.inventory.values():
+        inventory = (
+            session.query(objects.Object)
+            .join(mobiles.MobileInventory, mobiles.MobileInventory.object_id == objects.Object.id)
+            .filter(mobiles.MobileInventory.mobile_id == me.id)
+            .all())
+        if inventory: 
+            for each_item in inventory:
                 print(each_item)
         else: print('None')
 
@@ -265,8 +274,8 @@ if command: command(*args, me=player) if args else command(me=player)
     q=quit
 
 def main():
-    from dungeon import PROMPT
-    from players import PlayerCharacter
+    from dungeon_OLD import PROMPT
+    from players_OLD import PlayerCharacter
     me=PlayerCharacter()
     CommandList.help()
     while True:
