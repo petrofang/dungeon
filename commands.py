@@ -1,7 +1,9 @@
 #commands.py
-from dungeon_data import session
-import rooms, objects, mobiles, players
+from dungeon_data import session, joinedload
+import rooms, objects, mobiles
 from players import PlayerCharacter
+from mobiles import MobileInventory, MobileEquipment, Mobile
+from objects import Object, ItemTypes
 
 class CommandList():
     ''' This is the master list of all player commands. 
@@ -109,86 +111,100 @@ if command: command(*args, me=player) if args else command(me=player)
                 print(each_item)
         else: print('None')
 
-    def wear(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Wear <item> - Wear an item. '''
-        item=None
-        for each_item in me.inventory.values():
-            if args[-1] in each_item.name:
-                item = each_item
-        if isinstance(item, Armor): 
-            CommandList.equip(*args, me=me)
-        else:
-            print(f'You cannot wear that.')
+        title=(f'  {str(me).capitalize()}\'s Equipment  ')
+        print(title)
+        print('-'*len(title))
+        print(f'Armor: {me.armor}')
+        print(f'Weapon: {me.weapon}')
+        return
 
-    def remove(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Remove <item> - Remove a worn item. '''
-        if args[-1] in me.armor.name:
-            CommandList.unequip(*args, me=me)
-        else:
-            print(f'You are not wearing that.')
+    
+    def equip(*args, me:PlayerCharacter) -> bool:
+        #TODO: ugh.. this is too much. We need a better command parser
+        """Equips an item from the mobile's inventory.
 
-    def wield(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Wield <weapon> - Equip a weapon. '''
-        item=None
-        for each_item in me.inventory.values():
-            if args[-1] in each_item.name:
-                item = each_item
-        if isinstance(item, Weapon): 
-            CommandList.equip(*args, me=me)
-        else:
-            print(f'You cannot wield that.')
-                  
-    def equip(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Equip        - Show equipped items.
- Equip <item> - Equip an item. '''
-        if not args: 
-            title=(f'  {str(me).capitalize()}\'s Equipment  ')
-            print(title)
-            print('-'*len(title))
-            print(f'Armor: {me.armor}')
-            print(f'Weapon: {me.weapon}')
-            return
-        item=None
-        for each_item in me.inventory.values():
-            if args[-1] in each_item.name:
-                item = each_item
-        if item is not None:
-            if isinstance(item, Armor): 
-                if me.armor:
-                    print(f'{me.armor.name.capitalize()} is already equipped.')
-                else:
-                    me.armor=me.inventory.pop(item.id)
-                    print(f'{str(me).capitalize()} wears {item}.')
-            elif isinstance(item, Weapon): 
-                if me.weapon:
-                    print(f'{me.weapon.name.capitalize()} is already equipped.')
-                else:
-                    me.weapon=me.inventory.pop(item.id)
-                    print(f'{str(me).capitalize()} wields {item}.')
-            else:
-                    print(f'{item.name.capitalize()} is not something you can equip.')
-        else:     
-            print(f"{str(me).capitalize()} doesn't have {args[-1]} in inventory.")
+        Args:
+            item_name (str): Name of the item to equip (supports partial matching).
+            me: The Mobile object equipping the item.     
+        Returns:
+            bool: True if the item was equipped successfully, False otherwise.
+        """
+        # Convert input to lowercase for case-insensitive comparison
+        item_name = args[-1]        
+        user_input = item_name.lower()
 
-    def unequip(*args, me:PlayerCharacter=None, **kwargs):
-        ''' Unequip <item> - Unequip an item or weapon. '''
-        if not args: 
-            print('Unequip what now?')
-            return
-        if me.armor:
-          if args[-1] in me.armor.name:
-            me.inventory[me.armor.id]=me.armor
-            print(f'{str(me).capitalize()} removes {me.armor}.')
-            me.armor=None
-            return
-        if me.weapon:
-          if args[-1] in me.weapon.name:
-            me.inventory[me.weapon.id]=me.weapon
-            print(f'{str(me).capitalize()} unequips {me.weapon}.')
-            me.weapon=None
-            return
-        else:     
-            print(f"{str(me).capitalize()} doesn't have {args[-1]} equipped.")
+        # Get the equippable item from inventory
+        item = session.query(Object) \
+            .join(MobileInventory, MobileInventory.object_id == Object.id) \
+            .filter(MobileInventory.mobile_id == me.id) \
+            .filter(Object.name.like(f"%{user_input}%")) \
+            .filter(Object.type.in_(session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True))) \
+            .first()
+
+        if item:
+            # Check if there's an existing equipment for the specified type
+            existing_equipment = session.query(MobileEquipment) \
+                .filter(MobileEquipment.mobile_id == me.id) \
+                .filter(MobileEquipment.type == item.type) \
+                .first()
+
+            # Handle existing equipment (replace/unequip/error)
+            # ... (Implement your logic here based on game design)
+          
+            if existing_equipment: 
+                print(f"You already wear {existing_equipment}")
+                return False
+
+            # Add the item to Mobile_Equipment
+            new_equip = MobileEquipment(mobile_id=me.id, type=item.type, item_id=item.id)
+            session.add(new_equip)
+
+            # Remove the item from MobileInventory (assuming one per type)
+            session.query(MobileInventory).filter(
+                MobileInventory.mobile_id == me.id, MobileInventory.object_id == item.id
+            ).delete()
+
+            session.commit()  # Commit the changes to the database
+            print(f"{me.name} equips {item.name}.")
+            return True
+        else:
+            print(f"You don't have any armor that matches your request.")
+
+        return False
+
+#################### TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
+                          
+    def unequip(*args, me: PlayerCharacter) -> bool:
+        """Unequips an item from the mobile's equipment and puts it back into inventory."""
+
+        item_name = args[-1].lower() # janky, just uses the last word in the command as the item name
+
+        # 1. Get all equipped items:
+        equipped_items = session.query(MobileEquipment) \
+            .options(joinedload('item_type'))           \
+            .filter(MobileEquipment.mobile_id == me.id) \
+            .filter(MobileEquipment.item.type.in_(
+                session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True)
+            )) \
+            .all()
+
+        # 2. Find item containing word or substring:
+        unequipped_item = None
+        for equipped_item in equipped_items:
+            if item_name in equipped_item.item.name.lower():
+                unequipped_item = equipped_item
+                break
+        
+        if not unequipped_item:
+            print(f"You are not equipped with any item containing '{item_name}'.")
+            return False
+
+        # 3. Remove the item from MobileEquipment, add it to MobileInventory:
+        session.delete(unequipped_item)
+        session.add(MobileInventory(mobile_id=me.id, object_id=unequipped_item.item_id))
+        session.commit()
+        print(f"{me.name} unequips {unequipped_item.item.name}.")
+        return True
 
     def fight(*args, me=None, **kwargs):
         ''' Fight <target> - Initiate combat.'''
@@ -274,8 +290,7 @@ if command: command(*args, me=player) if args else command(me=player)
     q=quit
 
 def main():
-    from dungeon_OLD import PROMPT
-    from players_OLD import PlayerCharacter
+    from main import PROMPT
     me=PlayerCharacter()
     CommandList.help()
     while True:
