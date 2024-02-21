@@ -14,12 +14,19 @@ def debug(message): print(f' *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 def DEBUG_ROUTINE():
-    main(players.load("test"))
+    from commands import CommandList
+    me=players.load("test")
+    debug(f"me.equipment: {me.equipment}")
+    for each in me.equipment:
+        debug(f"{each}")
+    debug(f"me.armor: {me.armor}")
+    debug(f"me.weapon: {me.weapon}")
+    # main(me)
+    
 
 import players, rooms
 
 def main(me=players.PlayerCharacter):
-    if not me: raise UserWarning("who?")
     from commands import CommandList
     rooms.look(me.room_id)
     print(f'Hint: type HELP for a list of commands')
