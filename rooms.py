@@ -1,12 +1,11 @@
 #rooms.py
 
-DEBUG=False
-def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+DEBUG=True
+def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 from dungeon_data import Base, Column, Integer, ForeignKey, String, relationship, Session, session
 from objects import Object
-from mobiles import Mobile
 
 class Exit(Base):
     __tablename__ = "Exits"
@@ -18,12 +17,38 @@ class Exit(Base):
     # Add additional attributes if needed (e.g., description, locked)
 
 class Room(Base):
-    __tablename__ = "Rooms"  # Ensure consistent table name
+    __tablename__ = "Rooms"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
     description = Column(String(255), nullable=False)   
     exits = relationship("Exit", backref="from_room", foreign_keys="[Exit.from_room_id]")
+
+    @property
+    def exits(self):
+        """List of exits or None."""
+        exits=session.query(Exit).filter(Exit.from_room_id == self.id).all()
+        return exits
+
+    @property
+    def items(self):
+        objects = session.query(Object) \
+                .join(RoomInventory, RoomInventory.object_id == Object.id) \
+                .filter(RoomInventory.room_id == self.id) \
+                .all()
+
+        return objects if objects else []
+
+    @property
+    def targets(self):
+        """Room.targets - list of all mobile objects that can be targeted in the room"""
+        from mobiles import Mobile
+        mobiles = session.query(Mobile) \
+                .join(RoomMobiles, RoomMobiles.mobile_id == Mobile.id) \
+                .filter(RoomMobiles.room_id == self.id) \
+                .all()
+
+        return mobiles if mobiles else []
 
 class RoomInventory(Base):
     __tablename__ = "Room_Inventory"
@@ -35,6 +60,7 @@ class RoomInventory(Base):
     object = relationship("Object")
 
 class RoomMobiles(Base):
+    from mobiles import Mobile
     __tablename__="Room_Mobiles"
 
     id = Column(Integer, primary_key=True)
@@ -50,6 +76,8 @@ def get_room_name_by_id(room_id: int, session: Session) -> str: # type: ignore
     return result.name if result else "Unknown Room"  # Handle cases where room ID might not exist
 
 def look(room_id: int):
+    
+    from mobiles import Mobile
     """Displays the title, description, and exits of a given room.
 
     Args:
@@ -83,7 +111,6 @@ def look(room_id: int):
     print("\nExits: ", end='')
     for exit in room.exits:  # Use the relationship to access exits
         print(f" {exit.direction.capitalize()} to {get_room_name_by_id(exit.to_room_id, session)}")
-
 
 if __name__=="__main__": 
     rooms = session.query(Room).all()  # Query for all rooms    
