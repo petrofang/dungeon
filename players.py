@@ -1,14 +1,14 @@
 #players.py
 
 DEBUG=False
-def debug(message): print(f'{__name__} DEBUG: {message}') if DEBUG else None
+def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 from dungeon_data import Base, Column, Session, engine, ForeignKey, Integer, JSON, String, sessionmaker, session
 from mobiles import Mobile
 from rooms import Room
 
-class PlayerCharacter(Mobile):
+class PlayerCharacter(Mobile): 
     __tablename__ = "Players"
 
     id = Column(Integer, ForeignKey("Mobiles.id"), primary_key=True)
@@ -17,10 +17,10 @@ class PlayerCharacter(Mobile):
     level = Column(Integer, default=1)
     skills = Column(JSON, nullable=True)
     stats = Column(JSON, nullable=True)
-    room_id = Column(Integer, ForeignKey("Rooms.id"))
 
-    def room(self) -> Room:
-        return session.query(Room).filter_by(id=self.room_id).first()
+    def die():
+        # what to do when a player dies... 
+        pass
 
 #TODO: add case-insensitive checks for new/load players.
 def new(username: str = None) -> PlayerCharacter:
