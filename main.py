@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 def splash_screen():
     print(r"""
      _  Eventually, there may be a                                
@@ -7,37 +8,33 @@ def splash_screen():
  \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
                    |___/ (c)2024 Petrofang                  
 """)
-PROMPT=' >> '
 
 DEBUG=True
-def debug(message): print(f' *** DEBUG *** {message}') if DEBUG else None
+PROMPT=' >> '
+
+import players, rooms
+from commands import CommandList
+
+def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 def DEBUG_ROUTINE():
-    from commands import CommandList
     me=players.load("test")
-    debug(f"me.equipment: {me.equipment}")
-    for each in me.equipment:
-        debug(f"{each}")
-    debug(f"me.armor: {me.armor}")
-    debug(f"me.weapon: {me.weapon}")
-    # main(me)
+    CommandList.fight("Rat", me=me)
+    main(me)
     
-
-import players, rooms
-
 def main(me=players.PlayerCharacter):
-    from commands import CommandList
     rooms.look(me.room_id)
     print(f'Hint: type HELP for a list of commands')
     while True:
-        user_input = input(PROMPT).lower()
+        user_input = input(PROMPT)
         if user_input:
-            command, *args = user_input.split()
-            command = getattr(CommandList, command, None)
+            verb, *args = user_input.split()    
+            arg = " ".join(args)
+            command = getattr(CommandList, verb, None)
             if command: 
-                command(*args, me=me) if args else command(me=me)
-            else: print(f'Unknown command "{user_input}".')
+                command(arg, me=me) if arg else command(me=me)
+            else: print(f'Unknown command "{verb}".')
         else: print('Huh?')
 
 def init(): # initilization tasks:
