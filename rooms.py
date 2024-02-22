@@ -75,41 +75,50 @@ def get_room_name_by_id(room_id: int, session: Session) -> str: # type: ignore
     result = session.query(Room.name).filter(Room.id == room_id).first()
     return result.name if result else "Unknown Room"  # Handle cases where room ID might not exist
 
-def look(room_id: int):
-    
-    from mobiles import Mobile
+def look(me):
     """Displays the title, description, and exits of a given room.
 
     Args:
-        room (Room): An instance of the Room model representing the room to display.
-
+        me  (PlayerCharacter): The player who is the doing the looking.
     Returns:
         None
     """
-    
-    room = session.query(Room).filter_by(id=room_id).first()
+    room = me.room
     if not room:
-        print(f"Error: Room with ID {room_id} not found.")
+        print(f"Error: Room not found.")
         return
     
     print(f"[ {room.name} ]")
-    print(f"{room.description}", end='')
+    print(f"  {room.description}", end='')
 
-    objects_in_room = session.query(Object).join(RoomInventory).filter(RoomInventory.room_id == room.id).all()
-    mobiles_in_room = session.query(Mobile).join(RoomMobiles).filter(RoomMobiles.room_id == room.id).all()
+        # List items in a natural way
+    if room.items:
+        if len(room.items) == 1:
+            print(f" A solitary {room.items[0].name} rests here.")
+        else:
+            print(" Scattered about, you see a", end="")
+            for i, obj in enumerate(room.items[:-1]):
+                print(f" {obj.name}", end=",")
+            print(f" and a {room.items[-1].name}.")
     
-    if objects_in_room:
-        print(" Also", end ="")
-        for obj in objects_in_room: print(f", {obj.name}", end="")
-        print(".", end ='')
-    
-    if mobiles_in_room:
-        print(" Joining you in the room", end='')
-        for mob in mobiles_in_room: print(f": {mob.name} ", end='')
-        print('...', end='')
+
+    # Filter out the player character
+    other_mobiles = [mobile for mobile in room.targets if mobile.id != me.id]
+    if other_mobiles:
+        print("  Sharing the space with you ", end="")
+
+        # Handle edge case: single mobile
+        if len(other_mobiles) == 1:
+            print(f"is {other_mobiles[0].name}.")
+
+        else:
+            print("are", end="")
+            for i, mob in enumerate(other_mobiles[:-1]):
+                print(f" {mob.name}", end=",")
+            print(f" and {other_mobiles[-1].name}")
 
     print("\nExits: ", end='')
-    for exit in room.exits:  # Use the relationship to access exits
+    for exit in room.exits: 
         print(f" {exit.direction.capitalize()} to {get_room_name_by_id(exit.to_room_id, session)}")
 
 if __name__=="__main__": 
