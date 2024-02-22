@@ -1,5 +1,5 @@
 from dungeon_data import Base, Column, Integer, String, relationship, ForeignKey, session, and_
-from objects import Object, ItemTypes
+from objects import Object
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -10,6 +10,14 @@ class Mobile(Base):
     hp = Column(Integer, nullable=False)
     attack = Column(Integer, nullable=False)
     defense = Column(Integer, nullable=False)
+    room_id = Column(Integer, ForeignKey("Rooms.id"))
+
+    def die(): # make sure to update this in players.PlayerCharacter too!
+        # what to do when a mobile dies... 
+        # unequip all
+        # drop all
+        # delete from room
+        pass
 
     def __str__(self): return self.name
 
@@ -45,7 +53,7 @@ class Mobile(Base):
             and_(MobileEquipment.mobile_id == self.id, MobileEquipment.type == "shield")
         ).first()
         if equipment:
-            # Access the related Object using the equipment.item_id
+            # Access the related Object using the equipment.object_id
             item = session.query(Object).get(equipment.object_id)
             return item
         else:
@@ -59,14 +67,16 @@ class Mobile(Base):
         ).first()
 
         if equipment:
-            # Access the related Object using the equipment.item_id
+            # Access the related Object using the equipment.object_id
             item = session.query(Object).get(equipment.object_id)
             return item
         else:
             return None
 
-
-
+    @property
+    def room(self):
+        from rooms import Room
+        return session.query(Room).filter_by(id=self.room_id).first()
 
 
 
@@ -94,4 +104,4 @@ class MobileEquipment(Base):
     item_type = relationship("ItemTypes", backref="equipment")
 
     def __str__(self):
-        return f"{self.mobile_id}: {self.item_type.name} - {self.item_id}"
+        return f"{self.mobile_id}: {self.type} - {self.object_id}"
