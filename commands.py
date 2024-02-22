@@ -3,11 +3,12 @@ DEBUG=True
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
+import rooms
 from dungeon_data import session, update
 from players import PlayerCharacter
 from mobiles import MobileInventory, MobileEquipment, Mobile
 from objects import Object, ItemTypes
-from rooms import Room, RoomInventory, RoomMobiles
+from rooms import RoomInventory
 
 
 
@@ -43,12 +44,12 @@ if command: command(*args, me=player) if args else command(me=player)
         ''' Quit - quit the game (without saving). '''
         quit()
 
-    def look(*args, me:PlayerCharacter=None, **kwargs):
-        from rooms import look
-        ''' Look - take a look at the place you are in. '''
-        look(me.room_id)
+    def look(target=None, me:PlayerCharacter=None):
+        ''' Look - take a look at the place where you are. '''
+        if target==None: rooms.look(me)
+        
 
-    def get(*args, me:PlayerCharacter=None, **kwargs):
+    def get(args, me:PlayerCharacter=None, **kwargs):
         ''' Get <item> - Get an item from the room. '''
         # TODO: "get all"
          # Join Room_Inventory with Objects to get Object instances
@@ -58,7 +59,7 @@ if command: command(*args, me=player) if args else command(me=player)
             .filter(RoomInventory.room_id == me.room_id)
             .all()
         )
-        item_name=args[-1] if args else None
+        item_name=args if args else None
         item=None
         if room_inventory and args:
             for each_item in room_inventory:
@@ -74,11 +75,11 @@ if command: command(*args, me=player) if args else command(me=player)
                 session.commit()  # Commit the changes to the database
                 print(f'{str(me).capitalize()} picks up {item}.')
             else: 
-                print(f'There is no {args[-1]} here.')
+                print(f'There is no {args} here.')
         elif not room_inventory: print('There is nothing here to get.')
         elif not args: print('Get what now?') 
 
-    def drop(*args, me:PlayerCharacter=None, **kwargs):
+    def drop(args, me:PlayerCharacter=None, **kwargs):
         ''' Drop <item> - Drop an item on the ground. '''
         # TODO: "drop all"
         if not args: 
@@ -126,7 +127,7 @@ if command: command(*args, me=player) if args else command(me=player)
         return
 
     
-    def equip(*args, me:PlayerCharacter) -> bool:
+    def equip(args, me:PlayerCharacter) -> bool:
         #TODO: ugh.. this is too much. We need a better command parser
         """Equips an item from the mobile's inventory.
 
@@ -137,7 +138,7 @@ if command: command(*args, me=player) if args else command(me=player)
             bool: True if the item was equipped successfully, False otherwise.
         """
         # Convert input to lowercase for case-insensitive comparison
-        item_name = args[-1]        
+        item_name = args        
         user_input = item_name.lower()
 
         # Get the equippable item from inventory
@@ -179,7 +180,7 @@ if command: command(*args, me=player) if args else command(me=player)
 
         return False
                           
-    def unequip(*args, me: PlayerCharacter) -> bool:
+    def unequip(args, me: PlayerCharacter) -> bool:
         """Unequips an item from the mobile's equipment and puts it back into inventory."""
         if len(args) < 1: return False
         item_name = args[-1].lower() # janky, just uses the last word in the command as the item name
@@ -206,14 +207,14 @@ if command: command(*args, me=player) if args else command(me=player)
         print(f"{me.name} unequips {unequipped_item.name}.")
         return True
 
-    def go(*args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
+    def go(args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
         ''' Go <direction> - move into the next room in <direction>
      for cardinal directions you can just type the direction, eg:
      <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>'''
         if not args:
             print("Go where?")
             return False
-        dir=args[0]
+        dir=args
         if dir=='n':dir='north'
         if dir=='ne':dir='northeast'
         if dir=='e':dir='east'
@@ -238,18 +239,17 @@ if command: command(*args, me=player) if args else command(me=player)
                         .filter(Exit.direction == dir) \
                         .scalar()  # Retrieve a single value
       
-        if to_room_id:  # Check if a matching exit was found
+        if to_room_id:  # Check weather a matching exit was found
             session.execute(
                 update(RoomMobiles)  # Update the RoomMobiles table
                 .where(RoomMobiles.mobile_id == me.id)  # Identify the mobile to update
-                .values(room_id=to_room_id)  # Set the new room_id
-            )
+                .values(room_id=to_room_id))  # Set the new room_id
             session.commit()  # Commit the changes to the database       
         
         else:
             print(f"Exit not found in {dir} direction.")
 
-        CommandList.look(me=me)
+        rooms.look(me)
 
     def north(*args, me:PlayerCharacter=None, **kwargs):
         ''' alias for GO NORTH.'''
@@ -291,8 +291,6 @@ if command: command(*args, me=player) if args else command(me=player)
     l=look
     q=quit
 
-########## TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
-
     def fight(args, me=None, **kwargs):
         ''' Fight <target> - Initiate combat.'''
         debug("initiating fight...")
@@ -322,3 +320,14 @@ if command: command(*args, me=player) if args else command(me=player)
         elif not args: print('Fight who now?') 
 
 
+def parse(myself : PlayerCharacter, user_input : str) -> bool:
+    if user_input:
+        
+        command, *args = user_input.split()    
+        target_name = " ".join(args)
+        
+        action = getattr(CommandList, command, None)
+        if action: 
+            action(target_name, me=myself) if target_name else action(me=myself)
+        else: print(f'Unknown command "{command}".')
+    else: print('Huh?')
