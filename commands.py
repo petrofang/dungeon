@@ -1,9 +1,15 @@
 #commands.py
-from dungeon_data import session, joinedload
-import rooms, objects, mobiles
+DEBUG=True
+def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
+debug(f'{DEBUG}')
+
+from dungeon_data import session, update
 from players import PlayerCharacter
 from mobiles import MobileInventory, MobileEquipment, Mobile
 from objects import Object, ItemTypes
+from rooms import Room, RoomInventory, RoomMobiles
+
+
 
 class CommandList():
     ''' This is the master list of all player commands. 
@@ -38,17 +44,18 @@ if command: command(*args, me=player) if args else command(me=player)
         quit()
 
     def look(*args, me:PlayerCharacter=None, **kwargs):
+        from rooms import look
         ''' Look - take a look at the place you are in. '''
-        rooms.look(me.room_id)
+        look(me.room_id)
 
     def get(*args, me:PlayerCharacter=None, **kwargs):
         ''' Get <item> - Get an item from the room. '''
         # TODO: "get all"
          # Join Room_Inventory with Objects to get Object instances
         room_inventory = (
-            session.query(objects.Object)
-            .join(rooms.RoomInventory, rooms.RoomInventory.object_id == objects.Object.id)
-            .filter(rooms.RoomInventory.room_id == me.room_id)
+            session.query(Object)
+            .join(RoomInventory, RoomInventory.object_id == Object.id)
+            .filter(RoomInventory.room_id == me.room_id)
             .all()
         )
         item_name=args[-1] if args else None
@@ -61,9 +68,9 @@ if command: command(*args, me=player) if args else command(me=player)
             if item is not None:
 
                 # Remove the item from Room_Inventory
-                session.query(rooms.RoomInventory).filter(rooms.RoomInventory.object_id == item.id).delete()
+                session.query(RoomInventory).filter(RoomInventory.object_id == item.id).delete()
                 # Add the item to Mobile_Inventory
-                session.add(mobiles.MobileInventory(mobile_id=me.id, object_id=item.id))
+                session.add(MobileInventory(mobile_id=me.id, object_id=item.id))
                 session.commit()  # Commit the changes to the database
                 print(f'{str(me).capitalize()} picks up {item}.')
             else: 
@@ -80,17 +87,17 @@ if command: command(*args, me=player) if args else command(me=player)
         item=None
          # Join Mobile_Inventory with Objects to get Object instances
         mobile_inventory = (
-            session.query(objects.Object)
-            .join(mobiles.MobileInventory, mobiles.MobileInventory.object_id == objects.Object.id)
-            .filter(mobiles.MobileInventory.mobile_id == me.id)
+            session.query(Object)
+            .join(MobileInventory, MobileInventory.object_id == Object.id)
+            .filter(MobileInventory.mobile_id == me.id)
             .all())
         
         for each_item in mobile_inventory:
             if args[-1] in each_item.name:
                 item = each_item
         if item is not None:
-            session.query(mobiles.MobileInventory).filter(mobiles.MobileInventory.object_id == item.id).delete()
-            session.add(rooms.RoomInventory(room_id=me.room_id, object_id=item.id))
+            session.query(MobileInventory).filter(MobileInventory.object_id == item.id).delete()
+            session.add(RoomInventory(room_id=me.room_id, object_id=item.id))
             session.commit()
             print(f'{str(me).capitalize()} drops {item} on the ground.')
         else:     
@@ -102,9 +109,9 @@ if command: command(*args, me=player) if args else command(me=player)
         print(title)
         print('-'*len(title))
         inventory = (
-            session.query(objects.Object)
-            .join(mobiles.MobileInventory, mobiles.MobileInventory.object_id == objects.Object.id)
-            .filter(mobiles.MobileInventory.mobile_id == me.id)
+            session.query(Object)
+            .join(MobileInventory, MobileInventory.object_id == Object.id)
+            .filter(MobileInventory.mobile_id == me.id)
             .all())
         if inventory: 
             for each_item in inventory:
@@ -156,7 +163,7 @@ if command: command(*args, me=player) if args else command(me=player)
                 return False
 
             # Add the item to Mobile_Equipment
-            new_equip = MobileEquipment(mobile_id=me.id, type=item.type, item_id=item.id)
+            new_equip = MobileEquipment(mobile_id=me.id, type=item.type, object_id=item.id)
             session.add(new_equip)
 
             # Remove the item from MobileInventory (assuming one per type)
@@ -174,22 +181,16 @@ if command: command(*args, me=player) if args else command(me=player)
                           
     def unequip(*args, me: PlayerCharacter) -> bool:
         """Unequips an item from the mobile's equipment and puts it back into inventory."""
-
+        if len(args) < 1: return False
         item_name = args[-1].lower() # janky, just uses the last word in the command as the item name
-
+   
         # 1. Get all equipped items:
-        equipped_items = session.query(MobileEquipment) \
-            .options(joinedload('item_type'))           \
-            .filter(MobileEquipment.mobile_id == me.id) \
-            .filter(MobileEquipment.item.type.in_(
-                session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True)
-            )) \
-            .all()
-
+        equipped_items = me.equipment
+   
         # 2. Find item containing word or substring:
         unequipped_item = None
         for equipped_item in equipped_items:
-            if item_name in equipped_item.item.name.lower():
+            if item_name in equipped_item.name.lower():
                 unequipped_item = equipped_item
                 break
         
@@ -198,41 +199,20 @@ if command: command(*args, me=player) if args else command(me=player)
             return False
 
         # 3. Remove the item from MobileEquipment, add it to MobileInventory:
-        session.delete(unequipped_item)
-        session.add(MobileInventory(mobile_id=me.id, object_id=unequipped_item.item_id))
+        new_unequip = new_unequip = session.query(MobileEquipment).filter(MobileEquipment.mobile_id == me.id, MobileEquipment.type == unequipped_item.type).first()
+        session.delete(new_unequip)
+        session.add(MobileInventory(mobile_id=me.id, object_id=unequipped_item.id))
         session.commit()
-        print(f"{me.name} unequips {unequipped_item.item.name}.")
+        print(f"{me.name} unequips {unequipped_item.name}.")
         return True
-
-
-
-#################### TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
-
-
-
-    def fight(*args, me=None, **kwargs):
-        ''' Fight <target> - Initiate combat.'''
-        room=me.room.mobiles
-        mob_name=args[-1] if args else None
-        mob=None
-        if room and args:
-            for each in room.values():
-                if mob_name in each.name and each.dead==False:
-                    mob=each
-                    break
-            if mob is not None:
-                from combat import fight
-                print(f'{str(me).capitalize()} lunges at {mob}.')
-                fight(me, mob)
-            else: 
-                print(f'There is no {args[-1]} here.')
-        elif not room: print('There is nobody here to fight.')
-        elif not args: print('Fight who now?') 
 
     def go(*args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
         ''' Go <direction> - move into the next room in <direction>
      for cardinal directions you can just type the direction, eg:
      <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>'''
+        if not args:
+            print("Go where?")
+            return False
         dir=args[0]
         if dir=='n':dir='north'
         if dir=='ne':dir='northeast'
@@ -242,11 +222,34 @@ if command: command(*args, me=player) if args else command(me=player)
         if dir=='sw':dir='southwest'
         if dir=='w':dir='west'
         if dir=='nw':dir='northwest'
-        if dir in me.room.exits:
-            # move player to the room in that direction
-            print(f'{me.name.capitalize()} heads {dir}.')
-            me.room=me.room.exits[dir]
-            me.room.look()
+        for exit in me.room.exits:
+            if exit.direction==dir: break
+        else: 
+            print(f"exit not found in direction '{dir}'")
+            return False
+        
+        ### move player to the room in that direction ###
+        from rooms import Exit, RoomMobiles
+        print(f'{me.name.capitalize()} heads {dir}...')
+
+        # Find the to_room_id from the Exits table
+        to_room_id = session.query(Exit.to_room_id) \
+                        .filter(Exit.from_room_id == me.room.id) \
+                        .filter(Exit.direction == dir) \
+                        .scalar()  # Retrieve a single value
+      
+        if to_room_id:  # Check if a matching exit was found
+            session.execute(
+                update(RoomMobiles)  # Update the RoomMobiles table
+                .where(RoomMobiles.mobile_id == me.id)  # Identify the mobile to update
+                .values(room_id=to_room_id)  # Set the new room_id
+            )
+            session.commit()  # Commit the changes to the database       
+        
+        else:
+            print(f"Exit not found in {dir} direction.")
+
+        CommandList.look(me=me)
 
     def north(*args, me:PlayerCharacter=None, **kwargs):
         ''' alias for GO NORTH.'''
@@ -288,19 +291,34 @@ if command: command(*args, me=player) if args else command(me=player)
     l=look
     q=quit
 
-def main():
-    from main import PROMPT
-    me=PlayerCharacter()
-    CommandList.help()
-    while True:
-        user_input = input(PROMPT).lower()
-        if user_input:
-            command, *args = user_input.split()
-            command = getattr(CommandList, command, None)
-            if command: 
-                command(*args, me=me) if args else command(me=me)
-            else: print(f'Unknown command "{user_input}".')
-        else: print('Huh?')
+########## TODO: EVERYTHING BELOW THIS LINE STILL NEEDS TO BE CHECKED AND UPDATED
+
+    def fight(args, me=None, **kwargs):
+        ''' Fight <target> - Initiate combat.'''
+        debug("initiating fight...")
+        debug(f"me={me.__repr__()} - ({me.name})")
+        targets=me.room.targets
+        debug(f"possible targets:{targets}")
+        mob_name=args if args else None
+        debug(f"mob_name = {mob_name}")
+        if mob_name==None:return 0
+        mob=None
+        if targets and args:
+            debug(f"for target in targets:")
+            for target in targets:
+                debug(f"target: {target}")
+                debug(f"if mob_name in target.name:")
+                debug(f"if {mob_name} in {target.name}:")
+                if mob_name in target.name:
+                    mob=target
+                    break
+            if mob is not None:
+                print(f'{str(me).capitalize()} lunges at {mob}.')
+                import combat
+                combat.attack(me, mob)
+            else: 
+                print(f'There is no {args} here.')
+        elif not target: print('There is nobody here to fight.')
+        elif not args: print('Fight who now?') 
 
 
-if __name__ == '__main__': main()
