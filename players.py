@@ -18,9 +18,9 @@ class PlayerCharacter(Mobile):
     skills = Column(JSON, nullable=True)
     stats = Column(JSON, nullable=True)
 
-    def die():
+    def die(self):
         # what to do when a player dies... 
-        pass
+        self.goto(-1)
 
 #TODO: add case-insensitive checks for new/load players.
 def new(username: str = None) -> PlayerCharacter:
