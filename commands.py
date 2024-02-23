@@ -1,5 +1,5 @@
 #commands.py
-DEBUG=True
+DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
@@ -79,34 +79,44 @@ if command: command(*args, me=player) if args else command(me=player)
         elif not room_inventory: print('There is nothing here to get.')
         elif not args: print('Get what now?') 
 
-    def drop(args, me:PlayerCharacter=None, **kwargs):
+    def drop(item_name=None, me:PlayerCharacter=None, **kwargs):
         ''' Drop <item> - Drop an item on the ground. '''
-        # TODO: "drop all"
-        if not args: 
-            print('Drop what now?')
-            return
+
+        if not item_name: # just.. DROP!  
+            print("You drown down on one knee.")
+            return False 
+        
         item=None
-         # Join Mobile_Inventory with Objects to get Object instances
         mobile_inventory = (
             session.query(Object)
             .join(MobileInventory, MobileInventory.object_id == Object.id)
             .filter(MobileInventory.mobile_id == me.id)
             .all())
         
+        if item_name=="all":
+          if mobile_inventory:  
+            for each_item in mobile_inventory:
+                CommandList.drop(item_name=each_item.name, me=me)                    
+            return True
+          else:
+            print("You drop everything right away.")
+            return False
+            
         for each_item in mobile_inventory:
-            if args[-1] in each_item.name:
-                item = each_item
+            if item_name in each_item.name: item = each_item
+
         if item is not None:
             session.query(MobileInventory).filter(MobileInventory.object_id == item.id).delete()
             session.add(RoomInventory(room_id=me.room_id, object_id=item.id))
             session.commit()
-            print(f'{str(me).capitalize()} drops {item} on the ground.')
+            print(f'You drop {item} on the ground.')
         else:     
-            print(f"{str(me).capitalize()} doesn't have {args[-1]} in inventory.")
+            print(f"You don't have {item_name} in inventory.")
 
     def inventory(*args, me:PlayerCharacter=None, **kwargs):
         ''' Inventory - Check inventory. '''
         title=(f'  {str(me).capitalize()}\'s Inventory  ')
+        print('-'*len(title))
         print(title)
         print('-'*len(title))
         inventory = (
@@ -118,7 +128,8 @@ if command: command(*args, me=player) if args else command(me=player)
             for each_item in inventory:
                 print(each_item)
         else: print('None')
-
+        print()
+        print('-'*len(title))
         title=(f'  {str(me).capitalize()}\'s Equipment  ')
         print(title)
         print('-'*len(title))
@@ -127,7 +138,7 @@ if command: command(*args, me=player) if args else command(me=player)
         return
 
     
-    def equip(args, me:PlayerCharacter) -> bool:
+    def equip(item_name, me:PlayerCharacter) -> bool:
         #TODO: ugh.. this is too much. We need a better command parser
         """Equips an item from the mobile's inventory.
 
@@ -137,66 +148,65 @@ if command: command(*args, me=player) if args else command(me=player)
         Returns:
             bool: True if the item was equipped successfully, False otherwise.
         """
-        # Convert input to lowercase for case-insensitive comparison
-        item_name = args        
-        user_input = item_name.lower()
 
         # Get the equippable item from inventory
-        item = session.query(Object) \
-            .join(MobileInventory, MobileInventory.object_id == Object.id) \
-            .filter(MobileInventory.mobile_id == me.id) \
-            .filter(Object.name.like(f"%{user_input}%")) \
-            .filter(Object.type.in_(session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True))) \
-            .first()
+        equipment=None
+        for each_item in me.inventory:
+            if item_name in each_item.name: equipment=each_item
 
-        if item:
+        if equipment:
             # Check if there's an existing equipment for the specified type
             existing_equipment = session.query(MobileEquipment) \
                 .filter(MobileEquipment.mobile_id == me.id) \
-                .filter(MobileEquipment.type == item.type) \
+                .filter(MobileEquipment.type == equipment.type) \
                 .first()
 
             # Handle existing equipment (replace/unequip/error)
             # ... (Implement your logic here based on game design)
           
             if existing_equipment: 
-                print(f"You already wear {existing_equipment}")
-                return False
+                print(f"You are already have an item of {equipment.type} equipped...")
+                CommandList.unequip(session.query(Object.name).filter(Object.id == existing_equipment.object_id).first().name, me)
 
             # Add the item to Mobile_Equipment
-            new_equip = MobileEquipment(mobile_id=me.id, type=item.type, object_id=item.id)
+            new_equip = MobileEquipment(mobile_id=me.id, type=equipment.type, object_id=equipment.id)
             session.add(new_equip)
 
             # Remove the item from MobileInventory (assuming one per type)
             session.query(MobileInventory).filter(
-                MobileInventory.mobile_id == me.id, MobileInventory.object_id == item.id
+                MobileInventory.mobile_id == me.id, MobileInventory.object_id == equipment.id
             ).delete()
 
             session.commit()  # Commit the changes to the database
-            print(f"{me.name} equips {item.name}.")
+            print(f"{me.name} equips {equipment.name}.")
             return True
         else:
-            print(f"You don't have any armor that matches your request.")
+            print(f"You don't have any equipment that matches your request.")
 
         return False
                           
-    def unequip(args, me: PlayerCharacter) -> bool:
+    def unequip(target_name:str, me: PlayerCharacter) -> bool:
         """Unequips an item from the mobile's equipment and puts it back into inventory."""
-        if len(args) < 1: return False
-        item_name = args[-1].lower() # janky, just uses the last word in the command as the item name
-   
+        if len(target_name) < 1: return False
+
         # 1. Get all equipped items:
         equipped_items = me.equipment
    
+        # 1A. if "all"
+        if target_name=="all":
+            for item in equipped_items:
+                CommandList.unequip(item.name, me)
+            return True
+
         # 2. Find item containing word or substring:
         unequipped_item = None
         for equipped_item in equipped_items:
-            if item_name in equipped_item.name.lower():
+            if target_name.lower() in equipped_item.name.lower():
                 unequipped_item = equipped_item
                 break
         
         if not unequipped_item:
-            print(f"You are not equipped with any item containing '{item_name}'.")
+            print(f"You are not equipped with any item containing '{target_name}'.")
             return False
 
         # 3. Remove the item from MobileEquipment, add it to MobileInventory:
@@ -204,7 +214,8 @@ if command: command(*args, me=player) if args else command(me=player)
         session.delete(new_unequip)
         session.add(MobileInventory(mobile_id=me.id, object_id=unequipped_item.id))
         session.commit()
-        print(f"{me.name} unequips {unequipped_item.name}.")
+
+        print(f"You unequip {unequipped_item.name}.")
         return True
 
     def go(args, me:PlayerCharacter=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
@@ -275,11 +286,18 @@ if command: command(*args, me=player) if args else command(me=player)
     def northwest(*args, me:PlayerCharacter=None, **kwargs):
         ''' alias for GO NORTHWEST'''
         CommandList.go('northwest', me=me)
+    def up(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO UP.'''
+        CommandList.go('up', me=me)
+    def down(*args, me:PlayerCharacter=None, **kwargs):
+        ''' alias for GO DOWN.'''
+        CommandList.go('down', me=me)
     
     
         
     # abbreviations and shortcuts:
     inv=inventory
+    d=down
     n=north
     ne=northeast
     e=east
@@ -295,7 +313,7 @@ if command: command(*args, me=player) if args else command(me=player)
         ''' Fight <target> - Initiate combat.'''
         debug("initiating fight...")
         debug(f"me={me.__repr__()} - ({me.name})")
-        targets=me.room.targets
+        targets=me.room.mobiles
         debug(f"possible targets:{targets}")
         mob_name=args if args else None
         debug(f"mob_name = {mob_name}")
