@@ -1,5 +1,9 @@
-from dungeon_data import Base, Column, Integer, String, relationship, ForeignKey, session, and_
+from dungeon_data import Base, Boolean, Column, Integer, String, relationship, ForeignKey, session, and_, delete
 from objects import Object
+
+DEBUG=False
+def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
+debug(f'{DEBUG}')
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -11,16 +15,51 @@ class Mobile(Base):
     attack = Column(Integer, nullable=False)
     defense = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
+    humanoid = Column(Boolean, nullable=False)
+    type = Column(String)
 
-    def die(): # make sure to update this in players.PlayerCharacter too!
+    def die(self): # make sure to update this in players.PlayerCharacter too!
         # what to do when a mobile dies... 
+        from commands import CommandList
         # unequip all
+        CommandList.unequip('all', self)
         # drop all
+        CommandList.drop('all', self)
         # delete from room
-        pass
+        from rooms import RoomMobiles
+        session.execute(delete(RoomMobiles).filter_by(mobile_id=self.id))
+        # drop from database table
+        session.execute(delete(Mobile).filter_by(id=self.id))
+        session.commit()
+        print(f"{self.name.capitalize()} is destroyed. Ashes to ashes, dust to dust.")
 
     def __str__(self): return self.name
 
+    def goto(self, to_room_id, silent=True):
+        '''go to another room directly (by room.id)'''
+        from dungeon_data import update
+        from rooms import RoomMobiles
+        #transfer to another room by ID
+        debug(f"mobile_id: {self.id}")
+        debug(f"room_id:{to_room_id}")
+        session.execute(update(RoomMobiles)
+                        .where(RoomMobiles.mobile_id==self.id)
+                        .values(room_id=to_room_id))
+        session.commit()
+        debug(f"me.room_id={self.room_id}")
+
+    @property
+    def inventory(self):
+        """
+        Returns a list of all objects in mobile's inventory.
+        """
+        objects = session.query(Object) \
+                .join(MobileInventory, MobileInventory.object_id == Object.id) \
+                .filter(MobileInventory.mobile_id == self.id) \
+                .all()
+
+        return objects if objects else []
+        
     @property
     def equipment(self):
         """
@@ -90,7 +129,7 @@ class MobileInventory(Base):
     mobile_id = Column(Integer, ForeignKey("Mobiles.id"), nullable=False)
     object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
     quantity = Column(Integer, nullable=True, default=1)
-    mobile = relationship("Mobile", backref="inventory")
+    mobile = relationship("Mobile")
     item = relationship("Object")
 
 class MobileEquipment(Base):
