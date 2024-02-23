@@ -12,6 +12,9 @@ def splash_screen():
 DEBUG=True
 PROMPT=' >> '
 
+
+
+import dungeon_data
 import players, rooms, commands
 
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
@@ -19,6 +22,7 @@ debug(f'{DEBUG}')
 
 def DEBUG_ROUTINE():
     me=players.load("test")
+    me.goto(-1)
     main(me)
     
 def main(me=players.PlayerCharacter):
