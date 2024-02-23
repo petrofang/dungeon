@@ -4,13 +4,14 @@ from time import sleep
 from mobiles import Mobile
 from dice import d
 
-DEBUG=True
+DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 def attack(me:Mobile, them:Mobile):
         if them.hp <=0:
-            pass  
+            them.die()
+
         else:
             me.roll=d(20)
             them.roll=d(20)
@@ -44,7 +45,8 @@ def attack(me:Mobile, them:Mobile):
             if killed(them): 
                 from players import PlayerCharacter
                 if isinstance(me, PlayerCharacter):
-                    me.experience += 1
+                    me.experience += 1 # this needs to be updated in the database as well
+                    them.die()
                     return
             else: attack(them, me)
 
