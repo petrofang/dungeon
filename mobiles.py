@@ -7,10 +7,35 @@ def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else N
 debug(f'{DEBUG}')
 
 # Mobile.type should be one of these:    
-valid_mobile_types = [ "abberation", "beast", "construct", "dragon", "fey",
+valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "fowl", "giant", "ghost", "goblinoid", "humanoid",
                         "monster", "orc", "skeleon", "troll", "undead",
                         "mobile", "player"]
+
+class MobilePrototype(Base):
+    __tablename__ = "Prototype_Mobiles"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    hp_max = Column(Integer, nullable=False)
+    str=Column(Integer, nullable=False)
+    dex=Column(Integer, nullable=False)
+    int=Column(Integer, nullable=False)
+    attack = Column(Integer, nullable=False)
+    defense = Column(Integer, nullable=False)
+    humanoid = Column(Boolean, nullable=False)
+    description=Column(String)
+    type = Column(String)
+
+    def __init__(self, name, type=None, **kwargs):
+        self.name = name
+        if not type in valid_mobile_types: self.type="mobile"
+        for key, value in kwargs.items:
+            setattr(self, key, value)
+        if self.hp_max: self.hp=self.hp_max
+
+        session.add(self)
+        session.commit()
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -19,6 +44,9 @@ class Mobile(Base):
     name = Column(String, nullable=False)
     hp_max = Column(Integer, nullable=False)
     hp = Column(Integer, nullable=False)
+    str=Column(Integer, nullable=False)
+    dex=Column(Integer, nullable=False)
+    int=Column(Integer, nullable=False)
     attack = Column(Integer, nullable=False)
     defense = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
@@ -27,15 +55,25 @@ class Mobile(Base):
     description=Column(String)
     type = Column(String)
 
-    def __init__(self, name, hp_max=5, attack=0, defense=0, type=None, **kwargs):
-        name = name
-        hp_max = hp_max
-        attack = attack
-        defense = defense
-        humanoid = humanoid
-        if not type in valid_mobile_types: type="mobile"
-        for key, value in kwargs.items:
+    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1, attack=0, defense=0, humanoid=False, description=None, **kwargs):
+        self.name = name
+        self.type=type
+        if not type in valid_mobile_types: self.type="mobile"
+        self.hp_max=hp_max
+        self.hp=self.hp_max
+        self.str=str
+        self.dex=dex
+        self.int=int
+        self.attack=attack
+        self.defense=defense
+        self.humanoid=humanoid
+        self.description=description
+
+        for key, value in kwargs.items():
             setattr(self, key, value)
+        
+        session.add(self)
+        session.commit()
          
     def die(self): 
         # make sure to update this in players.PlayerCharacter too!
