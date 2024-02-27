@@ -20,16 +20,13 @@ class PlayerCharacter(Mobile):
     skills = Column(JSON, nullable=True)
     stats = Column(JSON, nullable=True)
 
-    def __init__(self, username, **kwargs):
-        # TODO: unpack kwargs
-        
-        self.hp_max=100
-        self.attack=5
-        self.defense=5        
-
+    def __init__(self, username:str, **kwargs):
         self.username=username
-        self.name=username
-        self.hp=self.hp_max
+        super().__init__(username, **kwargs)
+
+        self.id = -self.id # so players have negative IDs, easier to find on table
+        self.hp_max=100
+        self.hp=self.hp_max   
         self.humanoid=True
         self.experience=0
         self.level=1
@@ -37,8 +34,13 @@ class PlayerCharacter(Mobile):
         self.stats
         self.type="player"
 
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
         session.add(self)
         session.commit()
+
+        # load player into starting room
         session.add(RoomMobiles(mobile_id=self.id, room_id=STARTING_ROOM))
         session.commit()
 
