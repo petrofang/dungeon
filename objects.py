@@ -9,9 +9,27 @@ class Object(Base):
     name = Column(String, nullable=False)
     type = Column(String, nullable=False)
     rating = Column(Integer, nullable=False)
+    description = Column(String)
+
+    def __init__(self, name, rating=0, **kwargs):
+        self.name=name
+        self.rating=rating
+        for key, value in kwargs.items:
+            setattr(self, key, value)
 
     def __str__(self): return self.name
 
+    @property
+    def is_equipable(self):
+        from dungeon_data import session
+        """
+        Checks if the current object is equipable based on its type.
+
+        Returns:
+            True if the object is equipable, False otherwise.
+        """
+        return any(row.is_equipable for row in session.query(ItemTypes).filter(ItemTypes.name == self.type))
+    
 class ItemTypes(Base):
     __tablename__ = "Item_Types"
 
