@@ -1,12 +1,14 @@
 #players.py
 
 DEBUG=False
+STARTING_ROOM=-1 # Heck
+
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 from dungeon_data import Base, Column, Session, engine, ForeignKey, Integer, JSON, String, sessionmaker, session
-from mobiles import Mobile
-from rooms import Room
+from mobiles import MobileType, Mobile
+from rooms import RoomMobiles
 
 class PlayerCharacter(Mobile): 
     __tablename__ = "Players"
@@ -18,9 +20,33 @@ class PlayerCharacter(Mobile):
     skills = Column(JSON, nullable=True)
     stats = Column(JSON, nullable=True)
 
+    def __init__(self, username, **kwargs):
+        # TODO: unpack kwargs
+        
+        self.hp_max=100
+        self.attack=5
+        self.defense=5        
+
+        self.username=username
+        self.name=username
+        self.hp=self.hp_max
+        self.humanoid=True
+        self.experience=0
+        self.level=1
+        self.skills
+        self.stats
+        self.type="player"
+
+        session.add(self)
+        session.commit()
+        session.add(RoomMobiles(mobile_id=self.id, room_id=STARTING_ROOM))
+        session.commit()
+
     def die(self):
         # what to do when a player dies... 
+        print("You lose consciousness...")
         self.goto(-1)
+        self.hp=self.hp_max
 
 #TODO: add case-insensitive checks for new/load players.
 def new(username: str = None) -> PlayerCharacter:
@@ -50,14 +76,6 @@ def new(username: str = None) -> PlayerCharacter:
     # Create new player instance with default values
     player = PlayerCharacter(username=username)
 
-    # Set initial values for additional attributes (optional)
-    player.hp_max = 100
-    player.hp = 100
-    player.attack = 2
-    player.defense = 2
-    player.name=username
-    player.room_id = 1 # set this to a starting area
-
     # Save the new player to the database
     session.add(player)
     session.commit()
@@ -81,6 +99,7 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
         # Prompt for username
         while True:
             username = input("Player to load > ")
+            username=username.capitalize()
             if username:
                 # Check if username doesn't already exist:
                 if not session.query(PlayerCharacter).filter_by(username=username).first():
@@ -94,6 +113,24 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
             else:
                 print("Please enter a name.")
     player = session.query(PlayerCharacter).filter_by(username=username).first()
+
+    # make sure they are loaded back into the RoomMobiles table after logout:
+    if not player.room_id: player.room_id=-1
+    from rooms import RoomMobiles
+    player_in_a_room = session.query(RoomMobiles).filter_by(mobile_id=player.id).first()
+
+    if player_in_a_room:  # if player is already in a room (according to database)
+        player_in_a_room.room_id = player.room_id  # Update room ID
+    else:               # if not, add them to the database table:
+        session.add(RoomMobiles(mobile_id=player.id, room_id=player.room_id))
+        session.commit
+
     return player
 
-if __name__=="__main__": new("Rogue")
+def unload(self=None):
+    """perform unload tasks for players-characters."""
+
+    from rooms import RoomMobiles
+    RoomMobiles.remove(target=self)
+
+if __name__=="__main__": pass
