@@ -5,14 +5,14 @@ from mobiles import Mobile
 from dice import d
 from dungeon_data import session
 
-DEBUG=True
+DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
 def attack(me:Mobile, them:Mobile):
     # check if them is still a valid target (still in room)
     if not me.room==them.room:
-        print(f"{them.name.capitalze()} has slipped away.")
+        print(f"{them.name.capitalize()} has slipped away.")
     elif them.hp <=0:
         them.die()
     else:
@@ -43,7 +43,7 @@ def attack(me:Mobile, them:Mobile):
                 print(f'{damage} damage done to {them}!')
                 them.hp-=damage
                 session.commit()
-                print(f"{them} has {them.hp} remaining.")
+                print(f"{them.name.capitalize()} has {them.hp} hp remaining.")
                 # report remaining HP, update in the Mobiles table
 
 
