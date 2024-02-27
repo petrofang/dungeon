@@ -2,7 +2,7 @@ from dungeon_data import Base, Boolean, Column, Integer, String, relationship, F
 from objects import Object
 import actions
 
-DEBUG=False
+DEBUG=True
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
@@ -37,8 +37,6 @@ class Mobile(Base):
         for key, value in kwargs.items:
             setattr(self, key, value)
          
-
-
     def die(self): 
         # make sure to update this in players.PlayerCharacter too!
         for item in self.equipment: # unequip all items
@@ -140,8 +138,8 @@ class Mobile(Base):
 
     @property
     def room(self):
-        from rooms import Room
-        return session.query(Room).filter_by(id=self.room_id).first()
+        from rooms import Room, RoomMobiles
+        return session.query(Room).join(RoomMobiles, RoomMobiles.mobile_id == self.id).filter(RoomMobiles.room_id == Room.id).first()
 
 class MobileInventory(Base):
     __tablename__ = "Mobile_Inventory"
