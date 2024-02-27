@@ -64,3 +64,61 @@ def killed(them:Mobile) -> bool:
         return True
     else: 
         return False
+'''    
+class Combat:
+    """ 
+    combat is called in its own thread, eg:
+    Thread.Combat(player=Giles, enemy=rat)
+    """
+    COMBAT_PROMPT= " >> " # (might include player and enemy HP, etc)
+    def __init__(self, player, enemy):
+        # # determine initiative:
+        # if enemy.dex > player.dex: 
+        #   combatant1=enemy
+        #   combatant2=player
+        # else:
+        #   combatant1=player
+        #   combatant2=enemy
+        # Thread(target=self.combat_user_input, args=(combatant1,)).start()
+        # Thread(target=self.combat_user_input, args=(combatant2,)).start()
+        # Thread(target=self.combat_turn_by_turn, args=(combatant1, combatant2)).start()
+        pass
+
+    def combat_user_input(self, me:Mobile):
+        # combat_command = input(Combat.COMBAT_PROMPT)
+        # if combat_command:
+        #    me.combat_command=combat_command_parser(combat_command)
+        pass
+
+    def combat_turn_by_turn(self, attacker:Mobile, defender:Mobile):
+        # try:
+        #   if attacker.combat_command:
+        #       self.execute_combat_command(attacker=attacker, defender=defender)
+        # 
+        #   else:
+        #       self.standard_attack(attacker, defender)
+        #
+        #
+        # time.sleep(6)
+        pass 
+
+    def standard_attack(self, attacker:Mobile, defender:Mobile):
+        # standard attack:
+        # determine if a hit was made:
+        #   hit = attacker.dex +d20 vs defender.dex +d20
+        # if hit<0:
+        #   dodge
+        # else:
+        #   determine damage:
+        #     (attacker.str//4 + attacker.dex//4 + attacker.weapon.rating) - (defender.str//4 defender.armor.rating)
+        # self.status_check
+        pass
+
+    def status_check(self, attacker, defender):
+        # check status and handle apprropriately (eg, death if hp < 0)
+        pass
+
+    def end_combat(self):
+        # bring end combat and close the thread (how do you end a thread?)
+
+'''
