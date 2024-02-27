@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 DEBUG = False
-DATABASE = 'mysql+mariadbconnector://dm:dungeonmaster@localhost/dungeon'
 PROMPT=' >> '
 
 def splash_screen():
@@ -56,7 +55,8 @@ def main(me="test"):
     game_update_thread.start()
 
 def DEBUG_ROUTINE():
-    print(players.PlayerCharacter("Test").type)
+    test=players.load("Test")
+    debug(test.room)
 
 if __name__ == '__main__':
     splash_screen()
