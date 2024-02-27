@@ -1,9 +1,16 @@
 from dungeon_data import Base, Boolean, Column, Integer, String, relationship, ForeignKey, session, and_, delete
 from objects import Object
+import actions
 
 DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
+
+# Mobile.type should be one of these:    
+valid_mobile_types = [ "abberation", "beast", "construct", "dragon", "fey",
+                        "fowl", "giant", "ghost", "goblinoid", "humanoid",
+                        "monster", "orc", "skeleon", "troll", "undead",
+                        "mobile", "player"]
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -15,23 +22,41 @@ class Mobile(Base):
     attack = Column(Integer, nullable=False)
     defense = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
+        # do not update this directly; update the reference in RoomMobiles 
     humanoid = Column(Boolean, nullable=False)
+    description=Column(String)
     type = Column(String)
 
-    def die(self): # make sure to update this in players.PlayerCharacter too!
-        # what to do when a mobile dies... 
-        from commands import CommandList
-        # unequip all
-        CommandList.unequip('all', self)
-        # drop all
-        CommandList.drop('all', self)
-        # delete from room
+    def __init__(self, name, hp_max=5, attack=0, defense=0, type=None, **kwargs):
+        name = name
+        hp_max = hp_max
+        attack = attack
+        defense = defense
+        humanoid = humanoid
+        if not type in valid_mobile_types: type="mobile"
+        for key, value in kwargs.items:
+            setattr(self, key, value)
+         
+
+
+    def die(self): 
+        # make sure to update this in players.PlayerCharacter too!
+        for item in self.equipment: # unequip all items
+            actions.do(self, "unequip", target=item)
+
+        for item in self.inventory: # drop all items
+            actions.do(self, "drop", target=item)
+       
+        # delete self from room
         from rooms import RoomMobiles
         session.execute(delete(RoomMobiles).filter_by(mobile_id=self.id))
-        # drop from database table
-        session.execute(delete(Mobile).filter_by(id=self.id))
-        session.commit()
+        
         print(f"{self.name.capitalize()} is destroyed. Ashes to ashes, dust to dust.")
+
+        # delete from database table:
+        session.execute(delete(Mobile).filter_by(id=self.id))
+            # (use a deconstructor?)
+        session.commit()
 
     def __str__(self): return self.name
 
@@ -67,6 +92,7 @@ class Mobile(Base):
 
         This includes items of any type equipped in any slot.
         """
+        #TODO: update this to a dictionary type:<Object>
         equipped_items = session.query(MobileEquipment).filter(MobileEquipment.mobile_id == self.id).all()
         object_list = []
         for equipment in equipped_items:
@@ -117,11 +143,6 @@ class Mobile(Base):
         from rooms import Room
         return session.query(Room).filter_by(id=self.room_id).first()
 
-
-
-
-
-
 class MobileInventory(Base):
     __tablename__ = "Mobile_Inventory"
 
@@ -140,7 +161,9 @@ class MobileEquipment(Base):
     object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
 
     # Relationship to ItemTypes for data access
-    item_type = relationship("ItemTypes", backref="equipment")
+    item_type = relationship("ItemTypes", backref="equipment") 
+    # is this right?
 
     def __str__(self):
         return f"{self.mobile_id}: {self.type} - {self.object_id}"
+    
