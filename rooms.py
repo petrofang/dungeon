@@ -69,7 +69,28 @@ class RoomMobiles(Base):
     room = relationship("Room")
     mobile = relationship("Mobile")
 
+    def remove(target: Mobile) -> bool:
+        """
+        Removes the specified mobile from the current room by deleting the corresponding row in the RoomMobiles table.
 
+        Args:
+            target: The Mobile object representing the mobile to be removed.
+
+        Returns:
+            True if the mobile was removed successfully, False otherwise.
+        """
+
+        try:
+            # Efficient deletion using session.query.delete() and filter by mobile_id
+            session.query(RoomMobiles).filter(RoomMobiles.mobile_id == target.id).delete()
+            session.commit()
+            return True
+        except Exception as e:
+            # Handle potential errors gracefully
+            session.rollback()
+            print(f"Error removing mobile {target.name}: {e}")
+            return False
+        
 def get_room_name_by_id(room_id: int) -> str:
     """Retrieves the name of a room based on its ID using SQLAlchemy."""
     result = session.query(Room.name).filter(Room.id == room_id).first()
@@ -79,7 +100,7 @@ def look(me):
     """Displays the title, description, and exits of a given room.
 
     Args:
-        me  (PlayerCharacter): The player who is the doing the looking.
+        me  (Mobile): The player who is the doing the looking.
     Returns:
         None
     """
@@ -88,7 +109,7 @@ def look(me):
         print(f"Error: Room not found.")
         return
     
-    print(f"[ {room.name} ]")
+    print(f"[ {room.name} ] ({room.id})")
     print(f"  {room.description}", end='')
 
         # List inventory in a natural way
@@ -105,7 +126,7 @@ def look(me):
     # Filter out the player character
     other_mobiles = [mobile for mobile in room.mobiles if mobile.id != me.id]
     if other_mobiles:
-        print("  Sharing the space with you ", end="")
+        print(" Sharing the space with you ", end="")
 
         # Handle edge case: single mobile
         if len(other_mobiles) == 1:
@@ -115,12 +136,10 @@ def look(me):
             print("are", end="")
             for i, mob in enumerate(other_mobiles[:-1]):
                 print(f" {mob.name}", end=",")
-            print(f" and {other_mobiles[-1].name}")
-
-    print("\nExits: ", end='')
+            print(f" and {other_mobiles[-1].name}.")
+    
+    if not other_mobiles and not room.inventory:
+        print()
+    print("    Exits:")
     for exit in room.exits: 
-        print(f" {exit.direction.capitalize()} to {get_room_name_by_id(exit.to_room_id)}")
-
-if __name__=="__main__": 
-    rooms = session.query(Room).all()  # Query for all rooms    
-    for each in rooms: look(each)
+        print(f" {exit.direction.capitalize()} to {get_room_name_by_id(exit.to_room_id)} ")
