@@ -60,12 +60,12 @@ class Room(Base):
 
         return mobiles if mobiles else []
     
-    def look(self, looker):
+    def look(self, viewer, **kwargs):
         """
-        Displays the title, description, and exits of a given room.
+        Displays the title, description, items, mobiles and exits of a given room.
 
         Args:
-            me  (Mobile): The player who is the doing the looking.
+            viewer (Mobile): The player who is the doing the looking.
         Returns:
             None
         """
@@ -86,7 +86,7 @@ class Room(Base):
         
 
         # List mobiles; filter out the player character
-        other_mobiles = [mobile for mobile in room.mobiles if mobile.id != looker.id]
+        other_mobiles = [mobile for mobile in room.mobiles if mobile.id != viewer.id]
         if other_mobiles:
             print(" Sharing the space with you ", end="")
 
@@ -157,53 +157,3 @@ def get_room_name_by_id(room_id: int) -> str:
     """Retrieves the name of a room based on its ID using SQLAlchemy."""
     result = session.query(Room.name).filter(Room.id == room_id).first()
     return result.name if result else "Unknown Room"  # Handle cases where room ID might not exist
-
-def look(me): me.look()
-'''
-    """Displays the title, description, and exits of a given room.
-
-    Args:
-        me  (Mobile): The player who is the doing the looking.
-    Returns:
-        None
-    """
-    room = me.room
-    if not room:
-        print(f"Error: Room not found.")
-        return
-    
-    print(f"[ {room.name} ] ({room.id})")
-    print(f"  {room.description}", end='')
-
-        # List inventory in a natural way
-    if room.inventory:
-        if len(room.inventory) == 1:
-            print(f" A solitary {room.inventory[0].name} rests here.")
-        else:
-            print(" Scattered about, you see a", end="")
-            for i, obj in enumerate(room.inventory[:-1]):
-                print(f" {obj.name}", end=",")
-            print(f" and a {room.inventory[-1].name}.")
-    
-
-    # Filter out the player character
-    other_mobiles = [mobile for mobile in room.mobiles if mobile.id != me.id]
-    if other_mobiles:
-        print(" Sharing the space with you ", end="")
-
-        # Handle edge case: single mobile
-        if len(other_mobiles) == 1:
-            print(f"is {other_mobiles[0].name}.")
-
-        else:
-            print("are", end="")
-            for i, mob in enumerate(other_mobiles[:-1]):
-                print(f" {mob.name}", end=",")
-            print(f" and {other_mobiles[-1].name}.")
-    
-    if not other_mobiles and not room.inventory:
-        print()
-    print("    Exits:")
-    for exit in room.exits: 
-        print(f" {exit.direction.capitalize()} to {get_room_name_by_id(exit.to_room_id)} ")
-'''

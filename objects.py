@@ -29,7 +29,17 @@ class Object(Base):
             True if the object is equipable, False otherwise.
         """
         return any(row.is_equipable for row in session.query(ItemTypes).filter(ItemTypes.name == self.type))
-    
+        
+    def look(self, **kwargs):
+        """
+        Displays the title, description, and exits of a given room.
+        """
+        if self.description:
+            print(f"[ {self.name} ] ({self.id})")
+            print(f"  {self.description}")
+        else:
+            print(f"It's just an ordinary {self.name}.")
+            
 class ItemTypes(Base):
     __tablename__ = "Item_Types"
 

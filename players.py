@@ -49,10 +49,6 @@ class PlayerCharacter(Mobile):
         print("You lose consciousness...")
         self.goto(-1)
         self.hp=self.hp_max
-    
-    def look():
-        #TODO: return the description when someone LOOKs at you
-        pass
 
 def new(username: str = None) -> PlayerCharacter:
     """

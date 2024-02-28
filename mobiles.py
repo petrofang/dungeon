@@ -105,13 +105,11 @@ class Mobile(Base):
         from dungeon_data import update
         from rooms import RoomMobiles
         #transfer to another room by ID
-        debug(f"mobile_id: {self.id}")
-        debug(f"room_id:{to_room_id}")
         session.execute(update(RoomMobiles)
                         .where(RoomMobiles.mobile_id==self.id)
                         .values(room_id=to_room_id))
         session.commit()
-        debug(f"me.room_id={self.room_id}")
+        if not silent: self.room.look(self)
 
     @property
     def inventory(self):
@@ -181,6 +179,17 @@ class Mobile(Base):
     def room(self):
         from rooms import Room, RoomMobiles
         return session.query(Room).join(RoomMobiles, RoomMobiles.mobile_id == self.id).filter(RoomMobiles.room_id == Room.id).first()
+
+    def look(self, **kwargs):
+        """
+        Displays the title, description, and exits of a given room.
+        """
+        if self.description:
+            print(f"[ {self.name} ] ({self.id})")
+            print(f"  {self.description}")
+        else:
+            print(f"It's just an ordinary {self.name}.")
+
 
 class MobileInventory(Base):
     __tablename__ = "Mobile_Inventory"

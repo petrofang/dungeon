@@ -64,15 +64,7 @@ class CommandList():
         if target==None: self.room.look(self)
         else:
             target=find_target(self, arg)
-            debug(f"looking at {target.__repr__()}")
-            debug(f"hasattr(target, 'description')={hasattr(target, 'description')}")
-            debug(f"{target}.description = {target.description}")
-            
-            if not hasattr(target, 'description'):  # Check if target has a description attribute
-                print(f"it's a fairly average-looking {target.name}.")
-            else:
-                print(f'  {target.name}:')
-                print(f'{target.description}')
+            target.look()
     l=look
 
     def get(self:Mobile=None, arg:str=None, target:Object=None, **kwargs):
