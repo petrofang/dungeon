@@ -1,4 +1,4 @@
-DEBUG=False
+DEBUG=True
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
@@ -10,19 +10,40 @@ from typing import Union
 Any = Union[Mobile, Object, None]
 
 class CommandList():
-    ''' This is the master list of all player commands. '''
-    # def command(self:Mobile=None, arg:str=None, target:Any=None):
-    #     ACTION="action"
-    #     actions.do(self, ACTION, arg, target)     
+    ''' 
+    This is the master list of all player commands outside of combat,
+    as well as being the command handler for each command.
     
+    The command handlers further parse the command and arguments,
+    then determine the target with find_target() before sending 
+    SAAT (Subject, Action, Arguments, Target) to be performed by the
+    actions module (actions.py) with:
+        actions.do(S,A,A,T)
+
+    Generally speaking, commands which do no change anything or cause
+    any interaction with other game objects, mobiles or players can
+    be parsed directly by the command and are not sent to do(SAAT).
+        eg., checking inventory or looking.
+    
+    format:
+    
+    def command(self:Mobile=None, arg:str=None, target:Any=None):
+        """ 
+        docstring - displayed by help <command>
+        """
+        ACTION="action"
+        # command logic
+        actions.do(self, ACTION, arg, target)     
+    '''
+
     def __no_dunders(arg:str, **kwargs): 
         ''' A filter to show only public commands on the help list.'''
         return not arg.startswith('_')
 
     def help(self:Mobile=None, arg:str=None, target:Any=None, **kwargs):
         ''' 
-        Help           - get a list of commands.
-        Help <command> - show help for a command.
+        help           - get a list of commands.
+        help <command> - show help for a command.
         '''
         list_of_commands = sorted(filter(CommandList.__no_dunders, vars(CommandList)))
         if arg == None:
@@ -37,11 +58,21 @@ class CommandList():
         else: print(f'Unknown command "{arg}".')
 
     def look(self:Mobile=None, arg:str=None, target:Any=None, **kwargs):
-        ''' Look - take a look around you. '''   
-        if target==None: rooms.look(self)
-        
-        else: rooms.look(self)
-            #TODO: LOOK at other targets
+        """
+        look - look at your surrounding area. 
+        """   
+        if target==None: self.room.look(self)
+        else:
+            target=find_target(self, arg)
+            debug(f"looking at {target.__repr__()}")
+            debug(f"hasattr(target, 'description')={hasattr(target, 'description')}")
+            debug(f"{target}.description = {target.description}")
+            
+            if not hasattr(target, 'description'):  # Check if target has a description attribute
+                print(f"it's a fairly average-looking {target.name}.")
+            else:
+                print(f'  {target.name}:')
+                print(f'{target.description}')
     l=look
 
     def get(self:Mobile=None, arg:str=None, target:Object=None, **kwargs):
@@ -218,7 +249,8 @@ class CommandList():
             print(f"exit not found in direction '{dir}'")
             return False
         
-        ### move player to the room in that direction ###
+
+        # TODO: call actions.do(SAAT)
         from rooms import Exit, RoomMobiles
         print(f'{self.name.capitalize()} heads {dir}...')
 
@@ -239,7 +271,7 @@ class CommandList():
         else:
             print(f"Exit not found in {dir} direction.")
 
-        rooms.look(self)
+        self.room.look(self)
 
     def north(self=None, arg=None, target=None):
         ''' alias for GO NORTH.'''
@@ -318,24 +350,43 @@ def parse(myself, user_input=None) -> bool:
     else:
         command, *args = user_input.split()  
         arg = " ".join(args) if args else None
-        target=arg ### TODO: refine target aquisition
-        # in the meantime, send target & arg as same variable
+        target=arg #target aquisition is handled by each command handler
         command_action = getattr(CommandList, command, None)
         if command_action: 
             debug(f"command={command}(self={myself}, arg={arg.__repr__()}, target={target.__repr__()})")
             command_action(self=myself, arg=arg, target=target)
         else: print(f'Unknown command "{command}".')
 
-def find_target(self:Mobile, target_name:str, type:Any=None) -> Any:
+def find_target(self:Mobile, arg:str, type:Any=None, room_first=True, inv_first=False) -> Any:
     """
     search inventory and room for target Object of Mobile
     """
+    debug(f"find_target('{arg}')")
+    target = None
     if type != Object: 
         for mobile in self.room.mobiles:
-            if target_name in mobile.name: return mobile
-    elif type != Mobile: 
-        for item in self.inventory:
-            if target_name in item.name: return item
-        for item in self.room.inventory:
-            if target_name in item.name: return item
-    else: return None
+            if arg in mobile.name and mobile is not self: 
+                target = mobile
+                debug(f"target mobile:{mobile}")
+                return target
+    if type !=Mobile: 
+        if room_first and not inv_first:
+            for item in self.inventory:
+                if arg in item.name: 
+                    debug(f"target inventory item:{item}")
+                    return item
+            for item in self.room.inventory:
+                if arg in item.name: 
+                    debug(f"target room item:{item}")   
+                    return item
+        else:
+            for item in self.room.inventory:
+                if arg in item.name: 
+                    debug(f"room item:{item}")   
+                    return item
+            for item in self.inventory:
+                if arg in item.name: 
+                    debug(f"inventory item:{item}")
+                    return item
+    else:
+        debug(f"'{arg}' not found in room or inventory.")
