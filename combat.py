@@ -1,124 +1,169 @@
 #combat.py
 from random import random
+from commands import parse
 from time import sleep
 from mobiles import Mobile
 from dice import d
 from dungeon_data import session
+import threading, traceback
 
 DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
-def attack(me:Mobile, them:Mobile):
-    # check if them is still a valid target (still in room)
-    if not me.room==them.room:
-        print(f"{them.name.capitalize()} has slipped away.")
-    elif them.hp <=0:
-        them.die()
-    else:
-        me.roll=d(20)
-        them.roll=d(20)
-        print(f'{me} makes an attack at {them}!')
-        sleep(2)
-        print(f'{me}\'s attack: {me.attack}')
-        print(f'{them}\'s defense: {them.defense}')
-        sleep(1)
-        print(f'{me}\'s d20: {me.roll}.')
-        print(f'{them}\'s d20: {them.roll}')
-        sleep(2)
-        damage = me.roll + me.attack - them.roll - them.defense
-        if damage > 0:
-            if them.armor:
-                armor_rating=them.armor.rating
-                damage=max(0, damage - armor_rating)
-            if damage <= 0:
-                print(f'a dull thud as it hits {them}\'s {them.armor}')
-            else:
-                print("It's a hit!")
-                sleep(1)
-                print(f'damage = ({me.roll} + {me.attack}) - ({them.roll} + {them.defense})')
-                sleep(1)
-                if them.armor: 
-                    print(f'{them.name.capitalize()}\'s {them.armor} prevents {them.armor.rating} damage')
-                print(f'{damage} damage done to {them}!')
-                them.hp-=damage
-                session.commit()
-                print(f"{them.name.capitalize()} has {them.hp} hp remaining.")
-                # report remaining HP, update in the Mobiles table
-
-
-        else:
-            print("Swing and a miss!")
-        
-        if killed(them): 
-            from players import PlayerCharacter
-            if isinstance(me, PlayerCharacter):
-                me.experience += 1
-                
-                them.die()
-                return
-        else: attack(them, me)
-
-def killed(them:Mobile) -> bool: 
-    if them.hp <= 0:
-        return True
-    else: 
-        return False
-'''    
 class Combat:
-    """ 
-    combat is called in its own thread, eg:
-    Thread.Combat(player=Giles, enemy=rat)
-    """
-    COMBAT_PROMPT= " >> " # (might include player and enemy HP, etc)
+    player=None
+    enemy=None
+    engaged=False
+    combat_command=None
+    combat_lock=threading.Lock()
+    round=0
+
     def __init__(self, player, enemy):
-        # # determine initiative:
-        # if enemy.dex > player.dex: 
-        #   combatant1=enemy
-        #   combatant2=player
-        # else:
-        #   combatant1=player
-        #   combatant2=enemy
-        # Thread(target=self.combat_user_input, args=(combatant1,)).start()
-        # Thread(target=self.combat_user_input, args=(combatant2,)).start()
-        # Thread(target=self.combat_turn_by_turn, args=(combatant1, combatant2)).start()
-        pass
+        self.player=player
+        self.enemy=enemy
+        self.engaged=True
+        
+         # determine initiative:
+        debug("Engaging combat...")
+        debug(f"{player}.dex={player.dex}; {enemy}.dex={enemy.dex}")
+        if enemy.dex > player.dex: 
+            
+            debug(f"{enemy} gains initiative.")
+            attacker=enemy
+            defender=player
+        else:
+            debug(f"{player} gains initiative.")
+            attacker=player
+            defender=enemy
 
-    def combat_user_input(self, me:Mobile):
-        # combat_command = input(Combat.COMBAT_PROMPT)
-        # if combat_command:
-        #    me.combat_command=combat_command_parser(combat_command)
-        pass
+        combat_input=threading.Thread(target=self.combat_user_input, args=(self.player, self.enemy))
+        combat_loop=threading.Thread(target=self.combat_turn, args=(attacker, defender))
+        combat_input.start()
+        combat_loop.start()
+        combat_input.join()
+        combat_loop.join()
+        
+    @property 
+    def COMBAT_PROMPT(self):
+         return f"You: {self.player.hp}/{self.player.hp_max}HP; {self.enemy.name}: {self.enemy.hp}/{self.enemy.hp_max}HP\n >> "
+        
+    def combat_user_input(self, player:Mobile, enemy:Mobile):
+        while self.engaged==True:
+            print(f"{self.COMBAT_PROMPT}")
+            command = input()
+            if not self.engaged:
+                parse(self.player, command)
+                return
+            if command: 
+                self.combat_lock.acquire()
+                self.combat_command=parse_combat_command(self.player, self.enemy, command, self)
+                self.combat_lock.release()
 
-    def combat_turn_by_turn(self, attacker:Mobile, defender:Mobile):
-        # try:
-        #   if attacker.combat_command:
-        #       self.execute_combat_command(attacker=attacker, defender=defender)
-        # 
-        #   else:
-        #       self.standard_attack(attacker, defender)
-        #
-        #
-        # time.sleep(6)
-        pass 
-
+    def combat_turn(self, attacker:Mobile, defender:Mobile):
+        self.combat_lock.acquire()
+        try:
+            if self.combat_command:
+                if not self.combat_command(player=self.player, enemy=self.enemy, combat=self):
+                    self.standard_attack(attacker, defender)
+                self.combat_command=None
+            else:
+                self.standard_attack(attacker, defender)
+        except Exception as e:
+            print(f"COMBAT ERROR: {e}")
+            traceback.print_exc() 
+            self.disengage()
+            self.combat_lock.release()
+            return
+        finally:
+            # Always release the lock even if an exception occurs
+            self.combat_lock.release()
+        self.status_check(attacker, defender)
+        if self.engaged:
+            print(f"{self.COMBAT_PROMPT}")   
+            sleep(6)
+            self.combat_turn(defender, attacker)
+ 
     def standard_attack(self, attacker:Mobile, defender:Mobile):
-        # standard attack:
         # determine if a hit was made:
         #   hit = attacker.dex +d20 vs defender.dex +d20
-        # if hit<0:
-        #   dodge
-        # else:
-        #   determine damage:
-        #     (attacker.str//4 + attacker.dex//4 + attacker.weapon.rating) - (defender.str//4 defender.armor.rating)
-        # self.status_check
-        pass
+        attacker_d20, defender_d20 = d(20), d(20)
+        hit = (attacker.dex + attacker_d20) - (defender.dex+defender_d20)
+        print(f"{attacker.name.capitalize()} makes an attack at {defender}.")
+        print(f"hit roll: [ dex({attacker.dex})+d20({attacker_d20}) v. dex({defender.dex})+d20({defender_d20}) ] = {hit}")
+        # add combat skills for accuracy, dodge
+        
+        if hit<0:
+            print(f"{defender} dodges the attack!")
+        else:
+            print(f"{attacker} makes contact!")
 
-    def status_check(self, attacker, defender):
-        # check status and handle apprropriately (eg, death if hp < 0)
-        pass
+        #   determine damage:   
+            if not attacker.weapon: damage_rating=4
+            else: damage_rating=attacker.weapon.rating
+            damage_roll=d(damage_rating)
+            if not defender.armor: armor_rating=0
+            else: armor_rating=defender.armor.rating
+            damage = (attacker.str //4 + damage_roll) - (defender.str // 4 + armor_rating)
+            print(f"dmg roll: [ str/4({attacker.str //4}) + 1d({damage_rating})={damage_roll} vs str/4({defender.str // 4}) + AR({armor_rating}) ] ")
+            print(f"{damage} damage inflicted!")
+            defender.hp -=damage
+            session.commit
 
-    def end_combat(self):
-        # bring end combat and close the thread (how do you end a thread?)
+    def status_check(self, attacker=None, defender=None):
+        # check status and handle apprropriately (eg, death if hp <= 0)
+        if defender.hp <= 0:
+            defender.die()
+            self.disengage()
 
-'''
+    def disengage(self):
+        # end combat
+        self.engaged=False
+        print(" >> ", end="")
+
+def parse_combat_command(player:Mobile, enemy:Mobile, args:str, combat:Combat):
+    if not args: 
+        print("Huh?")
+        return None
+    else:
+        command, *args = args.split()
+#        if args[0].lower()=="cast":pass # magic spell handler
+        arg=' '.join(args) if args else None
+        command_action = getattr(CombatCommands, command, None)
+        if command_action:
+            return command_action(player=player, enemy=enemy, arg=arg, combat=combat)
+        else:
+            print(f"Unknown combat action: '{command}.'")
+            return None
+    
+class CombatCommands:
+    def flee(player:Mobile=None, combat=None,  **kwargs):
+        ACTION="flee"
+        if not player.room.exits:
+            print("There is no direction in which to flee.")
+            return None
+        else:
+            return CombatActions._do(action=ACTION)
+
+class CombatActions: #P.E.A.C.A.
+    """
+    for combat actions, return value is     True    if it blocks standard attack
+                                            False   if it allows standard attack
+    """
+
+    def _do(player:Mobile=None, enemy:Mobile=None, action:str=None, arg:str=None, combat:Combat=None):
+        combat_action=getattr(CombatActions, action, None)
+        if combat_action: return combat_action
+        else: print(f"*** BUG *** : CombatAction '{action}' not implemented.")    
+
+    def flee(player:Mobile=None, combat=None, **kwargs):
+        for exit in player.room.exits:
+            if d(20) < player.dex/len(player.room.exits):
+                combat.disengage()
+                print("You flee to fight another day.")
+                player.goto(exit.to_room_id)
+                return True
+            else:
+                print("You try to move toward the exit but your patch is cut off...")
+                return False
+            
