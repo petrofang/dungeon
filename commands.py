@@ -199,7 +199,7 @@ class CommandList():
         for cardinal directions you can just type the direction, eg:
         <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>
         '''
-
+        ACTION="go"
         if not target:
             print("Go where?")
             return False
@@ -301,30 +301,29 @@ class CommandList():
             actions.do(self, ACTION, arg)
         else: print("Say what?")
 
-    def fight(self=None, arg=None, **kwargs):
+    def fight(self=None, target=None, **kwargs):
         ''' fight <target> - Initiate combat.'''
         ACTION="fight"
-        if not arg: print("Who would you like to attack?")
+        if not target: print("Who would you like to attack?")
         elif not self.room.mobiles: print("There is no one you can attack.")
         else:
-            target=find_target(self, arg, Mobile)
+            target=find_target(self, target, Mobile)
             if target: actions.do(self, ACTION, target=target)
-            else: print(f'There is no {arg} here.')
+            else: print(f'There is no {target} here.')
     kill=fight
     attack=fight
 
 def parse(myself, user_input=None) -> bool:
     if not user_input: print('Huh?')      
     else:
-        self=myself
         command, *args = user_input.split()  
         arg = " ".join(args) if args else None
         target=arg ### TODO: refine target aquisition
         # in the meantime, send target & arg as same variable
         command_action = getattr(CommandList, command, None)
         if command_action: 
-            debug(f"command={command}(self={self}, arg={arg.__repr__()}, target={target.__repr__()})")
-            command_action(self=self, arg=arg, target=target)
+            debug(f"command={command}(self={myself}, arg={arg.__repr__()}, target={target.__repr__()})")
+            command_action(self=myself, arg=arg, target=target)
         else: print(f'Unknown command "{command}".')
 
 def find_target(self:Mobile, target_name:str, type:Any=None) -> Any:
