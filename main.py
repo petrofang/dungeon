@@ -29,11 +29,10 @@ def process_game_updates():
         actions.update_game()
 
 def process_user_inputs(user=None):
-    me=user
     print(f'Hint: type HELP for a list of commands')
     while True: 
         user_input = input(PROMPT)
-        commands.parse(me, user_input)
+        commands.parse(user, user_input)
 
 def init():
     # load or generate a character:
@@ -47,16 +46,19 @@ def init():
     # perform other initialization tasks
 
 def main(me="test"):
-    
+    me.room.look(me)
     game_update_thread = threading.Thread(target=process_game_updates)
     user_input_thread = threading.Thread(target=process_user_inputs, args=(me,))
     
     user_input_thread.start()
     game_update_thread.start()
+    user_input_thread.join()
+    game_update_thread.join()
 
 def DEBUG_ROUTINE():
-    test=players.load("Test")
-    debug(test.room)
+    test=players.load("Antron")
+    commands.parse(test, "look sword")
+    commands.parse(test, "look Beholder")
 
 if __name__ == '__main__':
     splash_screen()
