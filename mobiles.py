@@ -132,9 +132,8 @@ class Mobile(Base):
 
         This includes items of any type equipped in any slot.
         """
-        #TODO: update this to a dictionary type:<Object>
         equipped_items = session.query(MobileEquipment).filter(MobileEquipment.mobile_id == self.id).all()
-        object_list = []
+        object_list = []         #TODO: update this to a dictionary {equipment.type = item_reference}
         for equipment in equipped_items:
             item = session.query(Object).get(equipment.object_id)
             if item:  # Handle potential None values
