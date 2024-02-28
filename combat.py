@@ -144,6 +144,7 @@ class CombatCommands:
             return None
         else:
             return CombatActions._do(action=ACTION)
+    
 
 class CombatActions: #P.E.A.C.A.
     """
@@ -156,12 +157,13 @@ class CombatActions: #P.E.A.C.A.
         if combat_action: return combat_action
         else: print(f"*** BUG *** : CombatAction '{action}' not implemented.")    
 
-    def flee(player:Mobile=None, combat=None, **kwargs):
+    def flee(player:Mobile=None, combat:Combat=None, **kwargs):
         for exit in player.room.exits:
             if d(20) < player.dex/len(player.room.exits):
                 combat.disengage()
                 print("You flee to fight another day.")
                 player.goto(exit.to_room_id)
+                
                 return True
             else:
                 print("You try to move toward the exit but your patch is cut off...")
