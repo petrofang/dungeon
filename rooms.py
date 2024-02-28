@@ -7,6 +7,7 @@ debug(f'{DEBUG}')
 from dungeon_data import Base, Column, Integer, ForeignKey, String, relationship, Session, session
 from objects import Object
 
+
 class Exit(Base):
     __tablename__ = "Exits"
 
@@ -68,6 +69,11 @@ class RoomMobiles(Base):
     mobile_id = Column(Integer, ForeignKey("Mobiles.id"), nullable=False)  
     room = relationship("Room")
     mobile = relationship("Mobile")
+
+    def __init__(self, room_id, mobile_id):
+        self.room_id=room_id
+        self.mobile_id=mobile_id
+
 
     def remove(target: Mobile) -> bool:
         """
