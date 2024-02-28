@@ -11,7 +11,7 @@ def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else N
 debug(f'{DEBUG}')
 
 action_queue=queue.Queue()
-Any = Union[Mobile, Object]
+Any = Union[Mobile, Object, None]
 
 class Action(): 
     """
@@ -73,8 +73,8 @@ class Action():
 
     def fight(self:Mobile=None, arg:str=None, target:Any=None):
             print(f'{str(self).capitalize()} lunges at {target}.')
-            import combat
-            combat.attack(self, target)
+            from combat import Combat
+            Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
         pass
