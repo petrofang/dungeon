@@ -55,7 +55,7 @@ class Mobile(Base):
     description=Column(String)
     type = Column(String)
 
-    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1, attack=0, defense=0, humanoid=False, description=None, **kwargs):
+    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1, attack=0, defense=0, humanoid=False, description=None, room_id=None, **kwargs):
         self.name = name
         self.type=type
         if not type in valid_mobile_types: self.type="mobile"
@@ -68,6 +68,10 @@ class Mobile(Base):
         self.defense=defense
         self.humanoid=humanoid
         self.description=description
+        self.room_id=room_id
+        if self.room_id:
+            from rooms import RoomMobiles
+            RoomMobiles(self.room_id, self.id)
 
         for key, value in kwargs.items():
             setattr(self, key, value)
