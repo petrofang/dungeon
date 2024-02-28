@@ -49,8 +49,11 @@ class PlayerCharacter(Mobile):
         print("You lose consciousness...")
         self.goto(-1)
         self.hp=self.hp_max
+    
+    def look():
+        #TODO: return the description when someone LOOKs at you
+        pass
 
-#TODO: add case-insensitive checks for new/load players.
 def new(username: str = None) -> PlayerCharacter:
     """
     Creates a new player character.
@@ -65,16 +68,18 @@ def new(username: str = None) -> PlayerCharacter:
     if username is None:
         # Prompt for username
         while True:
-            username = input("What is your name, adventurer? > ")
+            username = input("What is your name, adventurer?  > ", end="")
             if username:
+                username = username.capitalize()
                 # Check if username already exists
                 if session.query(PlayerCharacter).filter_by(username=username).first():
                     print("That name is already taken.")
                 else:
                     break
             else:
-                print("Please enter a name.")
-        
+                print("\nPlease enter a name.  > ", end="")
+    
+    username = username.capitalize()    
     # Create new player instance with default values
     player = PlayerCharacter(username=username)
 
