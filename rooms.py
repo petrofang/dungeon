@@ -40,8 +40,21 @@ class Room(Base):
         exits=session.query(Exit).filter(Exit.from_room_id == self.id).all()
         return exits
 
+    def exit(self, direction:str=None):
+        """ 
+        Room.exit(direction)
+
+        returns the Exit object of the exit in direction, or None
+        """
+        if direction==None: return None
+        for exit in self.exits:
+            if exit.direction==direction:
+                return exit
+        else: return None
+
     @property
     def inventory(self):
+
         objects = session.query(Object) \
                 .join(RoomInventory, RoomInventory.object_id == Object.id) \
                 .filter(RoomInventory.room_id == self.id) \
@@ -51,7 +64,9 @@ class Room(Base):
 
     @property
     def mobiles(self):
-        """Room.mobiles - list of all mobile objects that can be targeted in the room"""
+        """
+        Room.mobiles - list of all mobiles in the room
+        """
         from mobiles import Mobile
         mobiles = session.query(Mobile) \
                 .join(RoomMobiles, RoomMobiles.mobile_id == Mobile.id) \
