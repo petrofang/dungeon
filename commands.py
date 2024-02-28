@@ -2,7 +2,6 @@ DEBUG=True
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
-
 import actions, players, rooms
 from mobiles import Mobile, MobileEquipment
 from objects import Object
@@ -14,13 +13,13 @@ class CommandList():
     This is the master list of all player commands outside of combat,
     as well as being the command handler for each command.
     
-    The command handlers further parse the command and arguments,
+    The command handlers further parse and sanitize command arguments,
     then determine the target with find_target() before sending 
     SAAT (Subject, Action, Arguments, Target) to be performed by the
     actions module (actions.py) with:
         actions.do(S,A,A,T)
 
-    Generally speaking, commands which do no change anything or cause
+    Generally speaking, commands which do not change anything or cause
     any interaction with other game objects, mobiles or players can
     be parsed directly by the command and are not sent to do(SAAT).
         eg., checking inventory or looking.
@@ -212,21 +211,17 @@ class CommandList():
             else:
                 actions.do(self, ACTION, target=item_to_remove)
         
-        
-
-
-
-    def go(self=None, arg=None, target=None, **kwargs): #N,NE,E,SE,S,SW,W,NW,Up,Down,Out
-        ''' 
+    def go(self, arg=None, target=None, **kwargs): 
+        """ 
         go <direction>  - move into the next room in <direction>
         for cardinal directions you can just type the direction, eg:
         <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>
-        '''
+        """
         ACTION="go"
-        if not target:
+        if not arg:
             print("Go where?")
             return False
-        dir=target
+        dir=arg
         if dir=='n':dir='north'
         if dir=='ne':dir='northeast'
         if dir=='e':dir='east'
@@ -238,63 +233,42 @@ class CommandList():
         for exit in self.room.exits:
             if exit.direction==dir: break
         else: 
-            print(f"exit not found in direction '{dir}'")
+            print(f"Exit not found in direction '{dir}'")
             return False
-        
 
-        # TODO: call actions.do(SAAT)
-        from rooms import Exit, RoomMobiles
-        print(f'{self.name.capitalize()} heads {dir}...')
+        actions.do(self, ACTION, dir)
 
-        # Find the to_room_id from the Exits table
-        from dungeon_data import session, update
-        to_room_id = session.query(Exit.to_room_id) \
-                        .filter(Exit.from_room_id == self.room.id) \
-                        .filter(Exit.direction == dir) \
-                        .scalar()  # Retrieve a single value
-      
-        if to_room_id:  # Check weather a matching exit was found
-            session.execute(
-                update(RoomMobiles)  # Update the RoomMobiles table
-                .where(RoomMobiles.mobile_id == self.id)  # Identify the mobile to update
-                .values(room_id=to_room_id))  # Set the new room_id
-            session.commit()  # Commit the changes to the database       
-        
-        else:
-            print(f"Exit not found in {dir} direction.")
-
-        self.room.look(self)
 
     def north(self=None, arg=None, target=None):
         ''' alias for GO NORTH.'''
-        CommandList.go(target='north', self=self)
+        CommandList.go(arg='north', self=self)
     def northeast(self=None, arg=None, target=None):
         ''' alias for GO NORTHEAST.'''
-        CommandList.go(target='northeast', self=self)
+        CommandList.go(arg='northeast', self=self)
     def east(self=None, arg=None, target=None):
         ''' alias for GO EAST.'''
-        CommandList.go(target='east', self=self)
+        CommandList.go(arg='east', self=self)
     def southeast(self=None, arg=None, target=None):
         ''' alias for GO SOUTHEAST.'''
-        CommandList.go(target='southeast', self=self)
+        CommandList.go(arg='southeast', self=self)
     def south(self=None, arg=None, target=None):
         ''' alias for GO SOUTH.'''
-        CommandList.go(target='south', self=self)
+        CommandList.go(arg='south', self=self)
     def southwest(self=None, arg=None, target=None):
         ''' alias for GO SOUTHWEST.'''
-        CommandList.go(target='southwest', self=self)
+        CommandList.go(arg='southwest', self=self)
     def west(self=None, arg=None, target=None):
         ''' alias for GO WEST.'''
-        CommandList.go(target='west', self=self)
+        CommandList.go(arg='west', self=self)
     def northwest(self=None, arg=None, target=None):
         ''' alias for GO NORTHWEST'''
-        CommandList.go(target='northwest', self=self)
+        CommandList.go(arg='northwest', self=self)
     def up(self=None, arg=None, target=None):
         ''' alias for GO UP.'''
-        CommandList.go(target='up', self=self)
+        CommandList.go(arg='up', self=self)
     def down(self=None, arg=None, target=None):
         ''' alias for GO DOWN.'''
-        CommandList.go(target='down', self=self)
+        CommandList.go(arg='down', self=self)
     d=down
     n=north
     ne=northeast
@@ -338,8 +312,16 @@ class CommandList():
     attack=fight
 
 def parse(myself, user_input=None) -> bool:
+    """
+    This is the command parser, the first link in the chain of command
+    where player input is parsed and converted into game action. Here,
+    user input is split into a command and an argument. Then, the command
+    is checked against the CommandList and (if a command is found) the
+    argument is sent for further parsing, sanitizing, and execution.
+    """
     if not user_input: print('Huh?')      
     else:
+        user_input=user_input.lower()
         command, *args = user_input.split()  
         arg = " ".join(args) if args else None
         target=arg #target aquisition is handled by each command handler
@@ -351,34 +333,29 @@ def parse(myself, user_input=None) -> bool:
 
 def find_target(self:Mobile, arg:str, type:Any=None, room_first=True, inv_first=False) -> Any:
     """
-    search inventory and room for target Object of Mobile
+    search inventory and room for target Object or Mobile
     """
     debug(f"find_target('{arg}')")
     target = None
     if type != Object: 
         for mobile in self.room.mobiles:
             if arg in mobile.name and mobile is not self: 
-                target = mobile
-                debug(f"target mobile:{mobile}")
-                return target
+                return mobile
     if type !=Mobile: 
         if room_first and not inv_first:
             for item in self.inventory:
                 if arg in item.name: 
-                    debug(f"target inventory item:{item}")
                     return item
             for item in self.room.inventory:
-                if arg in item.name: 
-                    debug(f"target room item:{item}")   
+                if arg in item.name:    
                     return item
         else:
             for item in self.room.inventory:
-                if arg in item.name: 
-                    debug(f"room item:{item}")   
+                if arg in item.name:  
                     return item
             for item in self.inventory:
                 if arg in item.name: 
-                    debug(f"inventory item:{item}")
                     return item
     else:
-        debug(f"'{arg}' not found in room or inventory.")
+        debug(f"'{arg}' not found in {self}.room or .inventory.")
+        return None

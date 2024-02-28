@@ -1,4 +1,4 @@
-import queue
+import queue, time
 from main import PROMPT
 from objects import Object
 from mobiles import Mobile, MobileInventory, MobileEquipment
@@ -72,13 +72,15 @@ class Action():
         print(f"You unequip {target.name}.")
 
     def fight(self:Mobile=None, arg:str=None, target:Any=None):
-            print(f'{str(self).capitalize()} lunges at {target}.')
+            print(f'{str(self).capitalize()} lunges at {target}...')
             from combat import Combat
             Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
-        # TODO: get action from CommandList (cut/paste)
-        pass
+        print(f'{self.name.capitalize()} heads {arg}...')
+        time.sleep(1)
+        self.goto(self.room.exit(arg).to_room.id, silent=False)
+
 
 def do(self:Mobile=None, action:str=None, arg:str=None, target:Any=None):
     debug(f"do(SAAT): {self}, {action}, {arg}, {target}")
