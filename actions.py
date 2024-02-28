@@ -77,6 +77,7 @@ class Action():
             Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
+        # TODO: get action from CommandList (cut/paste)
         pass
 
 def do(self:Mobile=None, action:str=None, arg:str=None, target:Any=None):
