@@ -11,9 +11,13 @@ class Object(Base):
     rating = Column(Integer, nullable=False)
     description = Column(String)
 
-    def __init__(self, name, rating=0, **kwargs):
+    def __init__(self, name:str="item", type:str="item", rating=0, **kwargs):
         self.name=name
         self.rating=rating
+        if type in ItemTypes:
+            self.type=type
+        else:
+            self.type="item"
         for key, value in kwargs.items:
             setattr(self, key, value)
 
