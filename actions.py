@@ -11,23 +11,33 @@ def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else N
 debug(f'{DEBUG}')
 
 action_queue=queue.Queue()
-Any = Union[Mobile, Object, None]
+Target = Union[Mobile, Object]
 
 class Action(): 
     """
-    format:
-        def action(self:Mobile=None, arg:str=None, target:Any=None):
+    This is the class for game engine actions. This is not to be 
+    accessed directly. instead, use: 
+                                    do(self, action, arg, target)
 
-    class for game engine actions. This is not to be accessed directly.
-    instead, use:
-        do(self, action, arg, target)
+    commands.parse() and commands.CommandList handle player input,
+    before sending SAAT (Subject, Action, Arguements, Target) to be
+    directed by the do() function and ultimately this the Action 
+    class. 
+
+    Generally, any command which causes changes to the game state
+    or any interaction with any game object, mobile or player should
+    pass through this class.
+
+    format:
+    
+    def action(self:Mobile, arg:str, target:Target):
     """
-    def say(self:Mobile=None, arg:str=None, **kwargs):
+    def say(self:Mobile, arg:str, target=None):
         print(f'{self} says "{arg}"')
     
     def announce(self:Mobile=None, arg:str=None, **kwargs):
         """
-        announce to the room. This will be useful when multi-player is added.
+        announce to the room. This may be useful when multi-player is added.
         """
         print(f"{arg}")
 
@@ -40,9 +50,6 @@ class Action():
         print(f'You pick up {target}.')
 
     def drop(self:Mobile, target:Object, **kwargs):
-        if not target: # just.. DROP!  
-            print("You drop down on one knee.")
-            return 
         session.query(MobileInventory).filter(MobileInventory.object_id == target.id).delete()
         session.add(RoomInventory(room_id=self.room.id, object_id=target.id))
         session.commit()
@@ -62,8 +69,8 @@ class Action():
         print(f"You equip {target.name}.")    
         
     def unequip(self:Mobile, target:Object, **kwargs):
-        new_unequip = session.query(MobileEquipment).filter(MobileEquipment.mobile_id == 
-                      self.id, MobileEquipment.type == target.type).first()
+
+        new_unequip = session.query(MobileEquipment).filter(MobileEquipment.object_id==target.id).first()
         session.delete(new_unequip)
 
         session.add(MobileInventory(mobile_id=self.id, object_id=target.id))
@@ -71,18 +78,18 @@ class Action():
 
         print(f"You unequip {target.name}.")
 
-    def fight(self:Mobile=None, arg:str=None, target:Any=None):
+    def fight(self:Mobile, arg:str, target:Mobile):
             print(f'{str(self).capitalize()} lunges at {target}...')
             from combat import Combat
             Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
         print(f'{self.name.capitalize()} heads {arg}...')
-        time.sleep(1)
+        time.sleep(.3)
         self.goto(self.room.exit(arg).to_room.id, silent=False)
 
 
-def do(self:Mobile=None, action:str=None, arg:str=None, target:Any=None):
+def do(self:Mobile=None, action:str=None, arg:str=None, target:Target=None):
     debug(f"do(SAAT): {self}, {action}, {arg}, {target}")
     # check Action class for action:
     do_action=getattr(Action, action, None)
