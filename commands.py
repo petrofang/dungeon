@@ -1,4 +1,4 @@
-DEBUG=True
+DEBUG=False
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
@@ -6,7 +6,7 @@ import actions, players, rooms
 from mobiles import Mobile, MobileEquipment
 from objects import Object
 from typing import Union
-Any = Union[Mobile, Object, None]
+Target = Union[Mobile, Object]
 
 class CommandList():
     ''' 
@@ -97,10 +97,10 @@ class CommandList():
         '''
         ACTION="drop"
 
-        if not target:
-            actions.do(self, ACTION)
+        if not target: # just.. DROP!  
+            print("You drop down on one knee.")
         elif not self.inventory:
-            print("You have anothing to drop.")
+            print("You have nothing to drop.")
         elif arg=="all":
             for item in self.inventory: 
                 actions.do(self, ACTION, target=item)
@@ -118,7 +118,12 @@ class CommandList():
         inventory   - Check inventory and equipment. 
         inv         -
         '''
+        # list equipped items:
+        CommandList.equip(self)
+
+        # list inventory items:
         title=(f'  {str(self).capitalize()}\'s Inventory  ')
+        title=f'{title:^30}'
         print('-'*len(title))
         print(title)
         print('-'*len(title))
@@ -128,15 +133,6 @@ class CommandList():
         else: print('None')
         print()
 
-        title=(f'  {str(self).capitalize()}\'s Equipment  ')
-        print('-'*len(title))
-        print(title)
-        print('-'*len(title))
-        if self.inventory: 
-            for each_item in self.equipment:
-                print(f"{each_item.type}: {each_item}")
-        else: print('None')
-        return
     inv=inventory
 
     def equip(self:Mobile=None, arg:str=None, target:Object=None):
@@ -150,40 +146,39 @@ class CommandList():
         from dungeon_data import session
         item_to_equip=None
         if not target:
-            title=(f'  {str(self).capitalize()}\'s Equipment  ')
-            print('-'*len(title))
+            title=f'{str(self).capitalize()}\'s Equipment'
+            title=f'{title:^30}'
+            print(f'-'*len(title))
             print(title)
-            print('-'*len(title))
-            if self.inventory: 
-                for each_item in self.equipment:
-                    print(f"{each_item.type}: {each_item}")
-            else: print('None')
+            print(f'-'*len(title))
+            for slot, item in self.equipment.items():
+                print(f"{slot:10}:  {item}")
+            return
         elif target=="all":
+            equips=0
             for item in self.inventory:
+            
                 if item.is_equipable:
-                    existing_equipment = session.query(Object) \
-    .join(MobileEquipment, MobileEquipment.object_id == Object.id) \
-    .filter(MobileEquipment.mobile_id == self.id) \
-    .filter(MobileEquipment.type == item.type).first()
-                    if not existing_equipment: 
+                    if not self.equipment[item.type]: 
                         actions.do(self, ACTION, target=item) 
-        else:
+                        equips+=1
+            
+            if equips==0:print(f"You're already equipped everything you can...")
+        else:   
             for item in self.inventory:
                 if arg in item.name: item_to_equip=item
-
             if not item_to_equip:
                 print(f"You don't have anything like that in inventory.")
             elif not item_to_equip.is_equipable:
                 print(f"You cannot equip {item_to_equip}.")
             else:
             # Check if there's an existing equipment for the specified type
-                existing_equipment = session.query(Object) \
-    .join(MobileEquipment, MobileEquipment.object_id == Object.id) \
-    .filter(MobileEquipment.mobile_id == self.id) \
-    .filter(MobileEquipment.type == item_to_equip.type).first()
-                if existing_equipment: 
-                    print(f"You are already have {item_to_equip.type} equipped...")
-                    actions.do(self, "unequip", target=existing_equipment)
+                
+                if self.equipment[item.type]:
+                    n="" 
+                    if item_to_equip.type[0] in "aeiou": n="n"
+                    print(f"You are already have a{n} {item_to_equip.type} equipped...")
+                    actions.do(self, "unequip", target=self.equipment[item.type])
                 actions.do(self, ACTION, target=item_to_equip)     
 
 
@@ -194,14 +189,15 @@ class CommandList():
         ACTION="unequip"
       
         if target=="all":
-            for item in self.equipment:
-                actions.do(self, ACTION, target=item)
+            for item in self.equipment.values():
+                if item: actions.do(self, ACTION, target=item)
         else:
             item_to_remove = None
-            for equipped_item in self.equipment:
-                if target.lower() in equipped_item.name.lower():
-                    item_to_remove = equipped_item
-                    break
+            for equipped_item in self.equipment.values():
+                if equipped_item:
+                    if target.lower() in equipped_item.name.lower():
+                        item_to_remove = equipped_item
+                        break
             else: return False
             
             if not item_to_remove:

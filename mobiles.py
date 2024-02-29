@@ -1,5 +1,5 @@
 from dungeon_data import Base, Boolean, Column, Integer, String, relationship, ForeignKey, session, and_, delete
-from objects import Object
+from objects import Object, ItemTypes
 import actions
 
 DEBUG=True
@@ -81,7 +81,7 @@ class Mobile(Base):
          
     def die(self): 
         # make sure to update this in players.PlayerCharacter too!
-        for item in self.equipment: # unequip all items
+        for item in self.equipment.values(): # unequip all items
             actions.do(self, "unequip", target=item)
 
         for item in self.inventory: # drop all items
@@ -126,54 +126,32 @@ class Mobile(Base):
     @property
     def equipment(self):
         """
-        Returns a list of all objects equipped by the mobile.
-
-        This includes items of any type equipped in any slot.
+        Returns a dictionary of all objects equipped by the mobile,
+        using equipment type as the key and item reference as the value.
         """
-        equipped_items = session.query(MobileEquipment).filter(MobileEquipment.mobile_id == self.id).all()
-        object_list = []         #TODO: update this to a dictionary {equipment.type = item_reference}
-        for equipment in equipped_items:
-            item = session.query(Object).get(equipment.object_id)
-            if item:  # Handle potential None values
-                object_list.append(item)
-        return object_list
 
-    @property
-    def weapon(self):
-        """Retrieves the equipped weapon or None."""
-        equipment = session.query(MobileEquipment).filter(and_(MobileEquipment.mobile_id == self.id, MobileEquipment.type == "weapon")).first()
-        if equipment:
-            item = session.query(Object).get(equipment.object_id)
-            return item
-        else:
-            return None
+        # 1. Get list of equipment types from ItemTypes.equipable==True:
+        slots = [slot[0] for slot in session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True).all()]  # Extract only slot names
+        
+        # 2. Initialize an empty dictionary for equipped items
+        equipped_items = {}
 
-    @property
-    def shield(self):
-        """Retrieves the equipped shield or None."""
-        equipment = session.query(MobileEquipment).filter(
-            and_(MobileEquipment.mobile_id == self.id, MobileEquipment.type == "shield")
-        ).first()
-        if equipment:
-            # Access the related Object using the equipment.object_id
-            item = session.query(Object).get(equipment.object_id)
-            return item
-        else:
-            return None
+        # 3. Loop through each equipment slot
+        for slot in slots:
+            # 4. Filter for equipment in the current slot
+            # find the MobileEquipment where MobileEquipment.type == slot
+            #                       and MobileEquipment.mobile_id == self.id
+            #     then get the Object from Object where Object.id == object_id
+            equipped_item=None
+            equip=session.query(MobileEquipment).filter(MobileEquipment.mobile_id==self.id, MobileEquipment.type==slot).first()
+            object_id = equip.object_id if equip else None
+            if object_id: equipped_item=session.query(Object).filter(Object.id==object_id).first()
 
-    @property
-    def armor(self):
-        """Retrieves the equipped armor or None."""
-        equipment = session.query(MobileEquipment).filter(
-            and_(MobileEquipment.mobile_id == self.id, MobileEquipment.type == "armor")
-        ).first()
+            # 5. Add the item to the dictionary, or None if no item is equipped
+            equipped_items[slot] = equipped_item if equipped_item else None
 
-        if equipment:
-            # Access the related Object using the equipment.object_id
-            item = session.query(Object).get(equipment.object_id)
-            return item
-        else:
-            return None
+        # 6. Return the dictionary of equipped items
+        return equipped_items
 
     @property
     def room(self):
@@ -207,10 +185,6 @@ class MobileEquipment(Base):
     mobile_id = Column(Integer, ForeignKey("Mobiles.id"), primary_key=True)
     type = Column(String(255), ForeignKey("Item_Types.name"), primary_key=True)
     object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
-
-    # Relationship to ItemTypes for data access
-    item_type = relationship("ItemTypes", backref="equipment") 
-    # is this right?
 
     def __str__(self):
         return f"{self.mobile_id}: {self.type} - {self.object_id}"
