@@ -59,20 +59,20 @@ def main(me="test"):
 def HACKER_MODE():
     import code
     import actions, combat, commands, dice, dungeon_data, mobiles, objects, players, rooms
+    me=players.load("Antron")
     code.interact(local=locals())
 
 def DEBUG_ROUTINE():
-    test=players.load("Antron")
-    commands.parse(test, "look sword")
-    commands.parse(test, "look Beholder")
+    me=players.load("Antron")
+    main(me)
 
 if __name__ == '__main__':
     splash_screen()
-    if args.debug:
-        DEBUG = True
-        DEBUG_ROUTINE()
     if args.hacker_mode:
         DEBUG = True
         HACKER_MODE()
+    elif args.debug:
+        DEBUG = True
+        DEBUG_ROUTINE()
     else:
         main(init())
