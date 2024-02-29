@@ -26,7 +26,7 @@ class CommandList():
     
     format:
     
-    def command(self:Mobile=None, arg:str=None, target:Any=None):
+    def command(self:Mobile=None, arg:str=None, target:Target=None):
         """ 
         docstring - displayed by help <command>
         """
@@ -39,7 +39,7 @@ class CommandList():
         ''' A filter to show only public commands on the help list.'''
         return not arg.startswith('_')
 
-    def help(self:Mobile=None, arg:str=None, target:Any=None, **kwargs):
+    def help(self:Mobile=None, arg:str=None, target:Target=None, **kwargs):
         ''' 
         help           - get a list of commands.
         help <command> - show help for a command.
@@ -56,14 +56,20 @@ class CommandList():
             print(help_command.__doc__)       
         else: print(f'Unknown command "{arg}".')
 
-    def look(self:Mobile=None, arg:str=None, target:Any=None, **kwargs):
+    def look(self:Mobile=None, arg:str=None, **kwargs):
         """
-        look - look at your surrounding area. 
+        look        - look at your surroundings
+        look <target>  - look at target
         """   
-        if target==None: self.room.look(self)
+        if arg==None: self.room.look(self)
         else:
             target=find_target(self, arg)
-            target.look()
+            if target is not None:
+                target.look()
+            elif self.room.exit(arg): 
+                self.room.exit(arg).look()
+            else:
+                print(f"You see no '{arg}'.")
     l=look
 
     def get(self:Mobile=None, arg:str=None, target:Object=None, **kwargs):
@@ -90,7 +96,7 @@ class CommandList():
             else:
                 actions.do(self, ACTION, target=item)
 
-    def drop(self:Mobile=None, arg:str=None, target:Any=None, **kwargs):
+    def drop(self:Mobile=None, arg:str=None, target:Target=None, **kwargs):
         ''' 
         drop <item> - Drop an item on the ground. 
         drop all    - Drop all items on ground.
@@ -182,7 +188,7 @@ class CommandList():
                 actions.do(self, ACTION, target=item_to_equip)     
 
 
-    def unequip(self:Mobile=None, arg:str=None, target:Any=None):
+    def unequip(self:Mobile=None, arg:str=None, target:Target=None):
         """
         unequip <item>    - removes an equipped item to inventory
         """  
@@ -327,7 +333,7 @@ def parse(myself, user_input=None) -> bool:
             command_action(self=myself, arg=arg, target=target)
         else: print(f'Unknown command "{command}".')
 
-def find_target(self:Mobile, arg:str, type:Any=None, room_first=True, inv_first=False) -> Any:
+def find_target(self:Mobile, arg:str, type:Target=None, room_first=True, inv_first=False) -> Target:
     """
     search inventory and room for target Object or Mobile
     """

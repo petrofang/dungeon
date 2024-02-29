@@ -1,10 +1,10 @@
 #rooms.py
 
-DEBUG=False
+DEBUG=True
 def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
 debug(f'{DEBUG}')
 
-from dungeon_data import Base, Column, Integer, ForeignKey, String, relationship, Session, session
+from dungeon_data import Base, Boolean, Column, Integer, ForeignKey, String, relationship, Session, session
 from objects import Object
 
 
@@ -14,7 +14,33 @@ class Exit(Base):
     from_room_id = Column(Integer, ForeignKey("Rooms.id"), primary_key=True)
     to_room_id = Column(Integer, ForeignKey("Rooms.id"), nullable=False)
     direction = Column(String(32), primary_key=True)
+    description = Column(String(65535))
+    door=Column(Boolean)
+    open=Column(Boolean)
+    hidden=Column(Boolean)
+    locked=Column(Boolean)
 
+    def look(self, **kwargs):
+        """
+        Displays description of an exit, 
+        and the name of the next room (if exit is open)
+        """
+        
+        cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'up', 'down', 'out']
+        if self.description == None:  # there's no description set
+            if not self.open:       # and it's closed
+                if self.direction in cardinals: # and it's a direction
+                    print(f"The way {self.direction} is closed.")
+                else:                           # it's a keyword
+                    print(f"The {self.direction} is closed.")
+            else:                   # and it's open
+                if self.direction in cardinals: # and it's a direction
+                    print(f"The way {self.direction} leads to {self.to_room.name}.")
+                else:               #  it's open, and it's a keyword
+                    print(f"The {self.direction} leads to {self.to_room.name}.")
+        else:                     # there is a desciption set   
+            closed = "(closed)" if not self.open else ""
+            print(f"[ {self.direction} ]: {closed}\n  {self.description}")
 
     @property
     def to_room(self):
@@ -117,9 +143,15 @@ class Room(Base):
         
         if not other_mobiles and not room.inventory:
             print()
-        print("    Exits:")
-        for exit in room.exits: 
-            print(f" {exit.direction.capitalize()} to {exit.to_room.name} ")
+
+        print("  Obvious exits:\n[ ", end="")
+        obvious_exits = [exit.direction for exit in self.exits if exit.hidden==False]
+        if not obvious_exits:
+            print('None')
+        else:
+            obvious_exits=", ".join(obvious_exits)
+            print(obvious_exits, end="")
+        print(" ]")
 
 
 class RoomInventory(Base):
