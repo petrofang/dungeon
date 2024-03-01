@@ -43,8 +43,8 @@ class Mobile(Base):
     str=Column(Integer, nullable=False)
     dex=Column(Integer, nullable=False)
     int=Column(Integer, nullable=False)
-    attack = Column(Integer, nullable=False)
-    defense = Column(Integer, nullable=False)
+    # attack = Column(Integer, nullable=False)
+    # defense = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
         # do not update this directly; update the reference in RoomMobiles 
     humanoid = Column(Boolean, nullable=False)
@@ -76,7 +76,6 @@ class Mobile(Base):
         session.commit()
          
     def die(self): 
-        # make sure to update this in players.PlayerCharacter too!
         for item in self.equipment.values(): # unequip all items
             actions.do(self, "unequip", target=item)
 
@@ -156,7 +155,7 @@ class Mobile(Base):
 
     def look(self, **kwargs):
         """
-        Displays the title, description, and exits of a given room.
+        Displays the name and description of a given mobile.
         """
         if self.description:
             print(f"[ {self.name} ] ({self.id})")

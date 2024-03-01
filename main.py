@@ -42,7 +42,7 @@ def init():
     # perform other initialization tasks
 
 def main(me):
-    me.room.look()
+    me.room.look(me)
     game_update_thread = threading.Thread(target=process_game_updates)
     user_input_thread = threading.Thread(target=process_user_inputs, args=(me,))
     
