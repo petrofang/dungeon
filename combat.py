@@ -136,30 +136,31 @@ class CombatCommands:
             print("There is no direction in which to flee.")
             return None
         else:
-            
-            return CombatActions._do(action=ACTION)
+            print("You try to find a way way out...")
+            return CombatAction._do(action=ACTION)
     
 
-class CombatActions: #P.E.A.C.A.
+class CombatAction: #P.E.A.C.A.  :: Player, Enemy, Action, Arguement, Combat
     """
     for combat actions, return value is     True    if it blocks standard attack
                                             False   if it allows standard attack
     """
 
     def _do(player:Mobile=None, enemy:Mobile=None, action:str=None, arg:str=None, combat:Combat=None):
-        combat_action=getattr(CombatActions, action, None)
+        combat_action=getattr(CombatAction, action, None)
         if combat_action: return combat_action
         else: print(f"*** BUG *** : CombatAction '{action}' not implemented.")    
 
     def flee(player:Mobile=None, combat:Combat=None, **kwargs):
         for exit in player.room.exits:
-          if exit.is_open and not exit.hidden:  
-            if d(20) < player.dex/len(player.room.exits):
-                combat.disengage()
-                print("You flee to fight another day...")
-                player.goto(exit.to_room_id)
-                return True
-            else:
-                print("You try to move toward the exit but your patch is cut off...")
-                return False
+            if exit.is_open and not exit.hidden:  
+                if d(20) < player.dex/len(player.room.exits):
+                    combat.disengage()
+                    print("You flee to fight another day.")
+                    player.goto(exit.to_room_id)
+                    return True
+                else:
+                    print("You try to move toward the exit but your path is cut off...")
+                    return False
+            
             
