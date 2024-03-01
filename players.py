@@ -46,6 +46,16 @@ class PlayerCharacter(Mobile):
         self.goto(-1)
         self.hp=self.hp_max
 
+    def look(self, **kwargs):
+        """
+        Displays the name and description of a given player-character.
+        """
+        if self.description:
+            print(f"[ {self.name} ] ({self.id})")
+            print(f"  {self.description}")
+        else:
+            print(f"It's {self.name}, the player-character.")
+
 def new(username: str = None) -> PlayerCharacter:
     """
     Creates a new player character.
@@ -127,9 +137,9 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
     return player
 
 def unload(self=None):
-    """perform unload tasks for players-characters."""
+    """
+    perform unload tasks for players-characters.
+    """
 
     from rooms import RoomMobiles
     RoomMobiles.remove(target=self)
-
-if __name__=="__main__": pass
