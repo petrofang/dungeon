@@ -1,10 +1,6 @@
 #players.py
 
-DEBUG=False
 STARTING_ROOM=-1 # Heck
-
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
 
 from dungeon_data import Base, Column, ForeignKey, Integer, JSON, String, session
 from mobiles import Mobile

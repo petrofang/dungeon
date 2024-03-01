@@ -2,10 +2,6 @@ from dungeon_data import Base, Boolean, Column, Integer, String, relationship, F
 from objects import Object, ItemTypes
 import actions
 
-DEBUG=True
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
-
 # Mobile.type should be one of these:    
 valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "fowl", "giant", "ghost", "goblinoid", "humanoid",

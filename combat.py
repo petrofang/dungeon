@@ -1,4 +1,3 @@
-#combat.py
 from random import random
 from commands import parse
 from time import sleep
@@ -6,10 +5,6 @@ from mobiles import Mobile
 from dice import d
 from dungeon_data import session
 import threading, traceback
-
-DEBUG=False
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
 
 class Combat:
     player=None
@@ -25,15 +20,13 @@ class Combat:
         self.engaged=True
         
          # determine initiative:
-        debug("Engaging combat...")
-        debug(f"{player}.dex={player.dex}; {enemy}.dex={enemy.dex}")
         if enemy.dex > player.dex: 
             
-            debug(f"{enemy} gains initiative.")
+            print(f"{enemy} gains initiative.")
             attacker=enemy
             defender=player
         else:
-            debug(f"{player} gains initiative.")
+            print(f"{player} gains initiative.")
             attacker=player
             defender=enemy
 
@@ -137,12 +130,13 @@ def parse_combat_command(player:Mobile, enemy:Mobile, args:str, combat:Combat):
             return None
     
 class CombatCommands:
-    def flee(player:Mobile=None, combat=None,  **kwargs):
+    def flee(player:Mobile=None, combat=None, **kwargs):
         ACTION="flee"
         if not player.room.exits:
             print("There is no direction in which to flee.")
             return None
         else:
+            
             return CombatActions._do(action=ACTION)
     
 
@@ -159,11 +153,11 @@ class CombatActions: #P.E.A.C.A.
 
     def flee(player:Mobile=None, combat:Combat=None, **kwargs):
         for exit in player.room.exits:
+          if exit.is_open and not exit.hidden:  
             if d(20) < player.dex/len(player.room.exits):
                 combat.disengage()
-                print("You flee to fight another day.")
+                print("You flee to fight another day...")
                 player.goto(exit.to_room_id)
-                
                 return True
             else:
                 print("You try to move toward the exit but your patch is cut off...")

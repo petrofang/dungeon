@@ -1,5 +1,3 @@
-#objects.py
-
 from dungeon_data import Base, Column, Integer, String, Boolean
 
 class Object(Base):

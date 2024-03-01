@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-
-DEBUG = False
 PROMPT=' >> '
 
 def splash_screen():
@@ -17,12 +15,9 @@ import time, threading, argparse
 import commands, actions, players
 
 parser = argparse.ArgumentParser(description='Dungeon game (c) Petrofang 2024 - https://github.com/petrofang/dungeon/')
-parser.add_argument( '-d', '--debug', action='store_true', help='Run in debug mode')
+parser.add_argument( '-d', '--debug', action='store_true', help='Run in debug mode (skip player loading)')
 parser.add_argument( '--hacker_mode', action='store_true', help='Import all modules and drop into Python shell (experts only)') 
 args = parser.parse_args()
-
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
 
 def process_game_updates():
     while True:
@@ -46,8 +41,8 @@ def init():
     return me
     # perform other initialization tasks
 
-def main(me="test"):
-    me.room.look(me)
+def main(me):
+    me.room.look()
     game_update_thread = threading.Thread(target=process_game_updates)
     user_input_thread = threading.Thread(target=process_user_inputs, args=(me,))
     
@@ -69,10 +64,8 @@ def DEBUG_ROUTINE():
 if __name__ == '__main__':
     splash_screen()
     if args.hacker_mode:
-        DEBUG = True
         HACKER_MODE()
     elif args.debug:
-        DEBUG = True
         DEBUG_ROUTINE()
     else:
         main(init())

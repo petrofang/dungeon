@@ -1,9 +1,3 @@
-#rooms.py
-
-DEBUG=True
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
-
 from dungeon_data import Base, Boolean, Column, Integer, ForeignKey, String, relationship, Session, session
 from objects import Object
 

@@ -1,7 +1,3 @@
-DEBUG=False
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
-
 import actions, players, rooms
 from mobiles import Mobile, MobileEquipment
 from objects import Object
@@ -355,7 +351,6 @@ def parse(myself, user_input=None) -> bool:
         target=arg #target aquisition is handled by each command handler
         command_action = getattr(CommandList, command, None)
         if command_action: 
-            debug(f"command={command}(self={myself}, arg={arg.__repr__()}, target={target.__repr__()})")
             command_action(self=myself, arg=arg, target=target)
         else: print(f'Unknown command "{command}".')
 
@@ -363,7 +358,6 @@ def find_target(self:Mobile, arg:str, type:Target=None, room_first=True, inv_fir
     """
     search inventory and room for target Object or Mobile
     """
-    debug(f"find_target('{arg}')")
     target = None
     if type != Object: 
         for mobile in self.room.mobiles:
@@ -385,5 +379,4 @@ def find_target(self:Mobile, arg:str, type:Target=None, room_first=True, inv_fir
                 if arg in item.name: 
                     return item
     else:
-        debug(f"'{arg}' not found in {self}.room or .inventory.")
         return None

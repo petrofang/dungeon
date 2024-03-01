@@ -6,10 +6,6 @@ from typing import Union
 from rooms import Exit, RoomInventory, cardinals
 from dungeon_data import session
 
-DEBUG=False
-def debug(message): print(f'{__name__} *** DEBUG *** {message}') if DEBUG else None
-debug(f'{DEBUG}')
-
 action_queue=queue.Queue()
 Target = Union[Mobile, Object]
 
@@ -104,7 +100,6 @@ class Action():
         target.close()
 
 def do(self:Mobile=None, action:str=None, arg:str=None, target:Target=None):
-    debug(f"do(SAAT): {self}, {action}, {arg}, {target}")
     # check Action class for action:
     do_action=getattr(Action, action, None)
     if do_action: do_action(self=self, arg=arg, target=target)
@@ -112,7 +107,6 @@ def do(self:Mobile=None, action:str=None, arg:str=None, target:Target=None):
         print(f"*** BUG ***: action '{action}' not implemented:\n    {do_action}\n")
 
 def add_to_queue(self=None, action=None, arg=None, target=None, **kwargs):   
-    debug(f"SAAT2Q: {(self, action, arg, target)}'")
     action_queue.put((self, action, arg, target))
 
 def update_game():
