@@ -186,7 +186,8 @@ class CommandList():
                     print(f"You are already have a{n} {item_to_equip.type} equipped...")
                     actions.do(self, "unequip", target=self.equipment[item.type])
                 actions.do(self, ACTION, target=item_to_equip)     
-
+    wear=equip  #TODO only if type not 'weapon'
+    wield=equip #TODO only if type is 'weapon'
 
     def unequip(self:Mobile=None, arg:str=None, target:Target=None):
         """
@@ -212,7 +213,8 @@ class CommandList():
             
             else:
                 actions.do(self, ACTION, target=item_to_remove)
-        
+    remove=unequip  #TODO: only if type not 'weapon'
+
     def go(self, arg=None, target=None, **kwargs): 
         """ 
         go <direction>  - move into the next room in <direction>
@@ -271,6 +273,9 @@ class CommandList():
     def down(self=None, arg=None, target=None):
         ''' alias for GO DOWN.'''
         CommandList.go(arg='down', self=self)
+    def out(self=None, arg=None, target=None):
+        ''' alias for GO OUT.'''
+        CommandList.go(arg='out', self=self)
     d=down
     n=north
     ne=northeast
@@ -281,14 +286,35 @@ class CommandList():
     w=west
     nw=northwest
       
+    def open(self=None, arg=None, **kwargs):
+        ''' 
+        open <exit> - opens a closed exit by direction or key word.
+        '''
+        # TODO: containers
+        ACTION = "open_door"
+        if arg:
+            if self.room.exit(arg):
+                actions.do(self, ACTION, arg, self.room.exit(arg))
+
+    def close(self=None, arg=None, **kwargs):
+        ''' 
+        close <exit> - opens a closed exit by direction or key word.
+        '''
+        # TODO: containers
+        ACTION = "close_door"
+        if arg:
+            if self.room.exit(arg):
+                actions.do(self, ACTION, arg, self.room.exit(arg))
+
+
     def quit(self=None, **kwargs):
-        # TODO: close game gracefully
         ''' 
         quit    - quit the game.
 
         Ctrl-C to close the game.
         '''
-
+        # TODO: close game gracefully
+       
         players.unload(self)
         print("Ctrl-C to close")
         exit()

@@ -3,7 +3,7 @@ from main import PROMPT
 from objects import Object
 from mobiles import Mobile, MobileInventory, MobileEquipment
 from typing import Union
-from rooms import Room, RoomInventory
+from rooms import Exit, RoomInventory, cardinals
 from dungeon_data import session
 
 DEBUG=False
@@ -84,10 +84,24 @@ class Action():
             Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
-        print(f'{self.name.capitalize()} heads {arg}...')
-        time.sleep(.3)
-        self.goto(self.room.exit(arg).to_room.id, silent=False)
+        if self.room.exit(arg).is_open:
+            if arg in cardinals:
+                print(f'You go {arg}...')
+            else:
+                print(f'You go through the {arg}...')
+            time.sleep(.5)
+            self.goto(self.room.exit(arg).to_room.id, silent=False)
+        else: 
+            if arg in cardinals:
+                print(f"The way {arg} is closed.")
+            else:
+                print(f"The {arg} is closed.")
+    
+    def open_door(self:Mobile, arg:str, target:Exit):
+        target.open()
 
+    def close_door(self:Mobile, arg:str, target:Exit):
+        target.close()
 
 def do(self:Mobile=None, action:str=None, arg:str=None, target:Target=None):
     debug(f"do(SAAT): {self}, {action}, {arg}, {target}")
@@ -95,7 +109,7 @@ def do(self:Mobile=None, action:str=None, arg:str=None, target:Target=None):
     do_action=getattr(Action, action, None)
     if do_action: do_action(self=self, arg=arg, target=target)
     else:
-        print(f"*** BUG ***: action '{action}' not found:\n    {do_action}\n")
+        print(f"*** BUG ***: action '{action}' not implemented:\n    {do_action}\n")
 
 def add_to_queue(self=None, action=None, arg=None, target=None, **kwargs):   
     debug(f"SAAT2Q: {(self, action, arg, target)}'")

@@ -7,7 +7,8 @@ debug(f'{DEBUG}')
 from dungeon_data import Base, Boolean, Column, Integer, ForeignKey, String, relationship, Session, session
 from objects import Object
 
-
+cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'up', 'down', 'out']
+        
 class Exit(Base):
     __tablename__ = "Exits"
 
@@ -16,9 +17,67 @@ class Exit(Base):
     direction = Column(String(32), primary_key=True)
     description = Column(String(65535))
     door=Column(Boolean)
-    open=Column(Boolean)
+    is_open=Column(Boolean)
     hidden=Column(Boolean)
-    locked=Column(Boolean)
+    is_locked=Column(Boolean)
+    # TODO - lock, unlock functions, keys.... how to make non-unique key object?
+
+    @property
+    def backref(self):
+        back_exit=None
+        for exit in self.to_room.exits:
+            if exit.to_room == self.from_room:
+                back_exit = exit
+        return back_exit
+        
+    @property
+    def to_room(self):
+        return session.query(Room).filter(Room.id==self.to_room_id).first()
+    
+    @property
+    def from_room(self):
+        return session.query(Room).filter(Room.id==self.from_room_id).first()
+
+    def open(self): # TODO: handle error checking with CommandList.close()
+                    # and the echoing should be handled by actions.Action 
+        way = "way leading " if self.direction in cardinals else ""                
+        # is it a door?
+        if self.door:
+            # is it closed?
+            if not self.is_open:
+                # is it not locked?
+                if not self.is_locked:
+                    self.is_open=True
+                    self.backref.is_open=True
+                    session.commit()
+                    # is it a cardinal direction or a keyword?
+                    print(f"You open the {way}{self.direction}.")
+                # is it locked?
+                else:
+                    print("You try to open it, but it is locked.")
+            # is it open?
+            else:
+                print(f"The {way}{self.direction} is already open.")
+        # is it not a door?
+        else:
+            print(f"The {way}{self.direction} cannot be opened nor closed.")
+
+    def close(self): # TODO: handle error checking with CommandList.close()
+                     # and the echoing should be handled by actions.Action
+        way = "way leading " if self.direction in cardinals else "" 
+        # is it a door?
+        if self.door:
+            # is it open?
+            if self.is_open:
+                self.is_open=False
+                self.backref.is_open=False
+                print(f"You close the {way}{self.direction}.")
+            # is it closed?
+            else:
+                print(f"The {way}{self.direction} is already closed.")
+        # is it not a door?
+        else: 
+            print(f"The {way}{self.direction} cannot be closed nor opened.")
 
     def look(self, **kwargs):
         """
@@ -28,7 +87,7 @@ class Exit(Base):
         
         cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'up', 'down', 'out']
         if self.description == None:  # there's no description set
-            if not self.open:       # and it's closed
+            if not self.is_open:       # and it's closed
                 if self.direction in cardinals: # and it's a direction
                     print(f"The way {self.direction} is closed.")
                 else:                           # it's a keyword
@@ -39,19 +98,9 @@ class Exit(Base):
                 else:               #  it's open, and it's a keyword
                     print(f"The {self.direction} leads to {self.to_room.name}.")
         else:                     # there is a desciption set   
-            closed = "(closed)" if not self.open else ""
+            closed = "(closed)" if not self.is_open else ""
             print(f"[ {self.direction} ]: {closed}\n  {self.description}")
 
-    @property
-    def to_room(self):
-        return session.query(Room).filter(Room.id==self.to_room_id).first()
-    
-    @property
-    def from_room(self):
-        return session.query(Room).filter(Room.id==self.from_room_id).first()
-
-
-    # Add additional attributes if needed (e.g., description, locked)
 
 class Room(Base):
     __tablename__ = "Rooms"
@@ -145,7 +194,9 @@ class Room(Base):
             print()
 
         print("  Obvious exits:\n[ ", end="")
-        obvious_exits = [exit.direction for exit in self.exits if exit.hidden==False]
+        # list of non-hidden exits; cardinal directions added first, then keyword exits
+        obvious_exits = [exit.direction for exit in self.exits if exit.direction in cardinals and exit.hidden==False]
+        obvious_exits.extend([exit.direction for exit in self.exits if exit.direction not in cardinals and exit.hidden==False])
         if not obvious_exits:
             print('None')
         else:
