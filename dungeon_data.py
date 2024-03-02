@@ -1,10 +1,10 @@
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import MetaData, JSON, Boolean, and_, update, delete
+# Some of these imports are accessed in chain by other modules.
+
 DATABASE = 'mysql+mariadbconnector://dm:dungeonmaster@localhost/dungeon'
 VERBOSE = False
-
-# These imports are accessed by other modules:
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, MetaData, JSON, Boolean, and_, update, delete
-from sqlalchemy.orm import declarative_base, sessionmaker, relationship, joinedload
-
 
 if VERBOSE:
     engine = create_engine(DATABASE, echo=True)   

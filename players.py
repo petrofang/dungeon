@@ -1,10 +1,9 @@
-#players.py
+from dungeon_data import Column, ForeignKey, Integer, JSON, String, session
+from mobiles import Mobile
+from rooms import RoomMobiles
 
 STARTING_ROOM=-1 # Heck
 
-from dungeon_data import Base, Column, ForeignKey, Integer, JSON, String, session
-from mobiles import Mobile
-from rooms import RoomMobiles
 
 class PlayerCharacter(Mobile): 
     __tablename__ = "Players"
@@ -20,7 +19,7 @@ class PlayerCharacter(Mobile):
         self.username=username
         super().__init__(username, **kwargs)
 
-        self.id = -self.id # so players have negative IDs, easier to find on table
+        self.id = -self.id # negative IDs help with sorting on Mobiles table
         self.hp_max=100
         self.hp=self.hp_max   
         self.humanoid=True
@@ -56,12 +55,14 @@ class PlayerCharacter(Mobile):
         else:
             print(f"It's {self.name}, the player-character.")
 
+
 def new(username: str = None) -> PlayerCharacter:
     """
     Creates a new player character.
 
     Args:
-        username: The desired username for the player. If None, prompts the user.
+        username: The desired username for the player. 
+            If None, prompts the user.
 
     Returns:
         A Player object representing the new character.
@@ -74,7 +75,9 @@ def new(username: str = None) -> PlayerCharacter:
             if username:
                 username = username.capitalize()
                 # Check if username already exists
-                if session.query(PlayerCharacter).filter_by(username=username).first():
+                if session.query(
+                        PlayerCharacter).filter_by(
+                        username=username).first():
                     print("That name is already taken.")
                 else:
                     break
@@ -96,13 +99,6 @@ def new(username: str = None) -> PlayerCharacter:
 def load(username: str = None) -> PlayerCharacter: # type: ignore
     """
     Loads a player from the database based on their username.
-
-    Args:
-        username (str): The username of the player to load.
-        session: A SQLAlchemy session object for database interaction.
-
-    Returns:
-        Player: The Player object representing the loaded character, or None if not found.
     """
     if username is None:
         # Prompt for username
@@ -111,9 +107,12 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
             username=username.capitalize()
             if username:
                 # Check if username doesn't already exist:
-                if not session.query(PlayerCharacter).filter_by(username=username).first():
+                if not session.query(
+                        PlayerCharacter).filter_by(
+                        username=username).first():
                     print("username not found.")
-                    newb=input(f"would you like to make a new character, {username}? (Y/N) > ")
+                    newb=input("would you like to make a new character, ",
+                               f"{username}? (Y/N) > ")
                     if newb:
                         if newb.upper()[0]=="Y": 
                             return new(username)
@@ -121,19 +120,15 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
                     break
             else:
                 print("Please enter a name.")
-    player = session.query(PlayerCharacter).filter_by(username=username).first()
+    player = session.query(PlayerCharacter
+                           ).filter_by(username=username).first()
 
-    # make sure they are loaded back into the RoomMobiles table after logout:
+    # ensure Player.room_id and RoomMobiles.room_id are synchronized:
+
+    # there 'should' be a room_id set, but if not:
     if not player.room_id: player.room_id=-1
-    from rooms import RoomMobiles
-    player_in_a_room = session.query(RoomMobiles).filter_by(mobile_id=player.id).first()
-
-    if player_in_a_room:  # if player is already in a room (according to database)
-        player_in_a_room.room_id = player.room_id  # Update room ID
-    else:               # if not, add them to the database table:
-        session.add(RoomMobiles(mobile_id=player.id, room_id=player.room_id))
-        session.commit
-
+    player.goto(player.room_id)
+    
     return player
 
 def unload(self=None):
@@ -141,5 +136,4 @@ def unload(self=None):
     perform unload tasks for players-characters.
     """
 
-    from rooms import RoomMobiles
     RoomMobiles.remove(target=self)

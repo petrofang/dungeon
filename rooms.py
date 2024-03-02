@@ -1,7 +1,9 @@
-from dungeon_data import Base, Boolean, Column, Integer, ForeignKey, String, relationship, Session, session
+from dungeon_data import Base, Boolean, Column, Integer, ForeignKey
+from dungeon_data import String, relationship, session
 from objects import Object
 
-cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'up', 'down', 'out']
+cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 
+           'west', 'northwest', 'up', 'down', 'out']
         
 class Exit(Base):
     __tablename__ = "Exits"
@@ -14,7 +16,7 @@ class Exit(Base):
     is_open=Column(Boolean)
     hidden=Column(Boolean)
     is_locked=Column(Boolean)
-    # TODO - lock, unlock functions, keys.... how to make non-unique key object?
+    # TODO - lock, unlock, keys.. how to make non-unique key object? JSON
 
     @property
     def backref(self):
@@ -79,7 +81,6 @@ class Exit(Base):
         and the name of the next room (if exit is open)
         """
         
-        cardinals=['north', 'northeast', 'east', 'southeast', 'south', 'southwest', 'west', 'northwest', 'up', 'down', 'out']
         if self.description == None:  # there's no description set
             if not self.is_open:       # and it's closed
                 if self.direction in cardinals: # and it's a direction
@@ -88,9 +89,11 @@ class Exit(Base):
                     print(f"The {self.direction} is closed.")
             else:                   # and it's open
                 if self.direction in cardinals: # and it's a direction
-                    print(f"The way {self.direction} leads to {self.to_room.name}.")
+                    print(f"The way {self.direction} ",
+                          f"leads to {self.to_room.name}.")
                 else:               #  it's open, and it's a keyword
-                    print(f"The {self.direction} leads to {self.to_room.name}.")
+                    print(f"The {self.direction} leads to ",
+                          f"{self.to_room.name}.")
         else:                     # there is a desciption set   
             closed = "(closed)" if not self.is_open else ""
             print(f"[ {self.direction} ]: {closed}\n  {self.description}")
@@ -124,10 +127,9 @@ class Room(Base):
     @property
     def inventory(self):
 
-        objects = session.query(Object) \
-                .join(RoomInventory, RoomInventory.object_id == Object.id) \
-                .filter(RoomInventory.room_id == self.id) \
-                .all()
+        objects = session.query(Object).join(RoomInventory, 
+            RoomInventory.object_id == Object.id).filter(
+            RoomInventory.room_id == self.id).all()
 
         return objects if objects else []
 
@@ -146,7 +148,7 @@ class Room(Base):
     
     def look(self, viewer, **kwargs):
         """
-        Displays the title, description, items, mobiles and exits of a given room.
+        Displays the title, description, items, mobiles, exits of given room.
 
         Args:
             viewer (Mobile): The player who is the doing the looking.
@@ -170,7 +172,8 @@ class Room(Base):
         
 
         # List mobiles; filter out the player character
-        other_mobiles = [mobile for mobile in room.mobiles if mobile.id != viewer.id]
+        other_mobiles = [mobile for mobile in room.mobiles 
+                         if mobile.id != viewer.id]
         if other_mobiles:
             print(" Sharing the space with you ", end="")
 
@@ -188,11 +191,16 @@ class Room(Base):
             print()
 
         print("  Obvious exits:\n[ ", end="")
-        # list of non-hidden exits; cardinal directions added first, then keyword exits
-        obvious_exits = [exit.direction for exit in self.exits if exit.direction in cardinals and exit.hidden==False]
-        obvious_exits.extend([exit.direction for exit in self.exits if exit.direction not in cardinals and exit.hidden==False])
-        if not obvious_exits:
-            print('None')
+        # list of non-hidden exits. 
+        #   cardinal directions added first, 
+        #   then keyword exits
+        obvious_exits = [exit.direction for exit in self.exits 
+                         if exit.direction in cardinals 
+                         and exit.hidden==False]
+        obvious_exits.extend([exit.direction for exit in self.exits 
+                              if exit.direction not in cardinals 
+                              and exit.hidden==False])
+        if not obvious_exits: print('None')
         else:
             obvious_exits=", ".join(obvious_exits)
             print(obvious_exits, end="")
@@ -222,10 +230,10 @@ class RoomMobiles(Base):
         self.room_id=room_id
         self.mobile_id=mobile_id
 
-
     def remove(target: Mobile) -> bool:
         """
-        Removes the specified mobile from the current room by deleting the corresponding row in the RoomMobiles table.
+        Removes the specified mobile from the current room by 
+        deleting the corresponding row in the RoomMobiles table.
 
         Args:
             target: The Mobile object representing the mobile to be removed.
@@ -235,8 +243,8 @@ class RoomMobiles(Base):
         """
 
         try:
-            # Efficient deletion using session.query.delete() and filter by mobile_id
-            session.query(RoomMobiles).filter(RoomMobiles.mobile_id == target.id).delete()
+            session.query(RoomMobiles).filter(
+                RoomMobiles.mobile_id == target.id).delete()
             session.commit()
             return True
         except Exception as e:
@@ -244,8 +252,3 @@ class RoomMobiles(Base):
             session.rollback()
             print(f"Error removing mobile {target.name}: {e}")
             return False
-        
-def get_room_name_by_id(room_id: int) -> str:
-    """Retrieves the name of a room based on its ID using SQLAlchemy."""
-    result = session.query(Room.name).filter(Room.id == room_id).first()
-    return result.name if result else "Unknown Room"  # Handle cases where room ID might not exist

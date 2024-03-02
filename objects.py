@@ -1,5 +1,6 @@
 from dungeon_data import Base, Column, Integer, String, Boolean
 
+
 class Object(Base):
     __tablename__ = "Objects"
 
@@ -30,7 +31,8 @@ class Object(Base):
         Returns:
             True if the object is equipable, False otherwise.
         """
-        return any(row.is_equipable for row in session.query(ItemTypes).filter(ItemTypes.name == self.type))
+        return any(row.is_equipable for row in session.query(
+            ItemTypes).filter(ItemTypes.name == self.type))
         
     def look(self, **kwargs):
         """
@@ -41,6 +43,7 @@ class Object(Base):
             print(f"  {self.description}")
         else:
             print(f"It's just an ordinary {self.name}.")
+            
             
 class ItemTypes(Base):
     __tablename__ = "Item_Types"

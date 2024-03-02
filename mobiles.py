@@ -1,6 +1,8 @@
-from dungeon_data import Base, Boolean, Column, Integer, String, relationship, ForeignKey, session, and_, delete
-from objects import Object, ItemTypes
+from dungeon_data import Base, Boolean, Column, delete, ForeignKey, Integer 
+from dungeon_data import JSON, relationship, session, String, update
 import actions
+from objects import Object, ItemTypes
+
 
 # Mobile.type should be one of these:    
 valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
@@ -8,7 +10,11 @@ valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "monster", "orc", "skeleon", "troll", "undead",
                         "mobile", "player"]
 
+
 class MobilePrototype(Base):
+    """
+    A prototype mobile which can be used to spawn functional mobiles
+    """
     __tablename__ = "Prototype_Mobiles"
 
     id = Column(Integer, primary_key=True)
@@ -33,6 +39,11 @@ class MobilePrototype(Base):
         session.add(self)
         session.commit()
 
+    def spawn(self, room_id=-1):
+        # TODO: spawn mobiles from Prototype.spawn()
+        pass
+
+
 class Mobile(Base):
     __tablename__ = "Mobiles"
 
@@ -43,15 +54,15 @@ class Mobile(Base):
     str=Column(Integer, nullable=False)
     dex=Column(Integer, nullable=False)
     int=Column(Integer, nullable=False)
-    # attack = Column(Integer, nullable=False)
-    # defense = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
         # do not update this directly; update the reference in RoomMobiles 
     humanoid = Column(Boolean, nullable=False)
     description=Column(String)
     type = Column(String)
 
-    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1, attack=0, defense=0, humanoid=False, description=None, room_id=None, **kwargs):
+    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1,
+                 attack=0, defense=0, humanoid=False, description=None,
+                 room_id=None, **kwargs):
         self.name = name
         self.type=type
         if not type in valid_mobile_types: self.type="mobile"
@@ -86,7 +97,8 @@ class Mobile(Base):
         from rooms import RoomMobiles
         session.execute(delete(RoomMobiles).filter_by(mobile_id=self.id))
         
-        print(f"{self.name.capitalize()} is destroyed. Ashes to ashes, dust to dust.")
+        print(f"{self.name.capitalize()} is destroyed. ",
+              "Ashes to ashes, dust to dust.")
 
         # delete from database table:
         session.execute(delete(Mobile).filter_by(id=self.id))
@@ -96,8 +108,15 @@ class Mobile(Base):
     def __str__(self): return self.name
 
     def goto(self, to_room_id, silent=True):
-        '''go to another room directly (by room.id)'''
-        from dungeon_data import update
+        """
+        Go to another room directly (by room.id)
+        
+        Note that a trigger in the MySQL database will automatically
+        update Player.room_id based on the change to RoomMobiles.room_id
+            This will need to be changed if using a different database
+            which does not have triggers (eg SQLite)
+        """
+
         from rooms import RoomMobiles
         #transfer to another room by ID
         session.execute(update(RoomMobiles)
@@ -111,39 +130,43 @@ class Mobile(Base):
         """
         Returns a list of all objects in mobile's inventory.
         """
-        objects = session.query(Object) \
-                .join(MobileInventory, MobileInventory.object_id == Object.id) \
-                .filter(MobileInventory.mobile_id == self.id) \
-                .all()
-
+        objects = session.query(Object).join(MobileInventory, 
+            MobileInventory.object_id == Object.id
+            ).filter(MobileInventory.mobile_id == self.id).all()
         return objects if objects else []
         
     @property
     def equipment(self):
         """
         Returns a dictionary of all objects equipped by the mobile,
-        using equipment type as the key and item reference as the value.
+        using equipment type as the key and item Object as the value.
+            eg:
+                self.equipment['weapon'] = Object('sword', 'weapon')
+                self.equipment['armor'] = Object('leathers, 'armor')
+                damage = self.equipment['weapon'].rating 
+                for equipment in self.equipment.values(): ...
         """
 
         # 1. Get list of equipment types from ItemTypes.equipable==True:
-        slots = [slot[0] for slot in session.query(ItemTypes.name).filter(ItemTypes.is_equipable == True).all()]  # Extract only slot names
+        slots = [slot[0] for slot in session.query(ItemTypes.name
+            ).filter(ItemTypes.is_equipable == True).all()]
         
         # 2. Initialize an empty dictionary for equipped items
         equipped_items = {}
 
         # 3. Loop through each equipment slot
         for slot in slots:
-            # 4. Filter for equipment in the current slot
-            # find the MobileEquipment where MobileEquipment.type == slot
-            #                       and MobileEquipment.mobile_id == self.id
-            #     then get the Object from Object where Object.id == object_id
-            equipped_item=None
-            equip=session.query(MobileEquipment).filter(MobileEquipment.mobile_id==self.id, MobileEquipment.type==slot).first()
+            # 4. find the id of the equipment in the current slot or None
+            equipped_item = None
+            equip = session.query(MobileEquipment).filter(
+                MobileEquipment.mobile_id==self.id, 
+                MobileEquipment.type==slot).first()
             object_id = equip.object_id if equip else None
-            if object_id: equipped_item=session.query(Object).filter(Object.id==object_id).first()
+            if object_id: equipped_item=session.query(Object).filter(
+                Object.id==object_id).first()
 
-            # 5. Add the item to the dictionary, or None if no item is equipped
-            equipped_items[slot] = equipped_item if equipped_item else None
+            # 5. Add the item to the dictionary, or None
+            equipped_items[slot] = equipped_item
 
         # 6. Return the dictionary of equipped items
         return equipped_items
@@ -151,7 +174,9 @@ class Mobile(Base):
     @property
     def room(self):
         from rooms import Room, RoomMobiles
-        return session.query(Room).join(RoomMobiles, RoomMobiles.mobile_id == self.id).filter(RoomMobiles.room_id == Room.id).first()
+        return session.query(Room).join(RoomMobiles, 
+            RoomMobiles.mobile_id == self.id).filter(
+            RoomMobiles.room_id == Room.id).first()
 
     def look(self, **kwargs):
         """
@@ -174,12 +199,16 @@ class MobileInventory(Base):
     mobile = relationship("Mobile")
     item = relationship("Object")
 
+
 class MobileEquipment(Base):
     __tablename__ = "Mobile_Equipment"
 
-    mobile_id = Column(Integer, ForeignKey("Mobiles.id"), primary_key=True)
-    type = Column(String(255), ForeignKey("Item_Types.name"), primary_key=True)
-    object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
+    mobile_id = Column(Integer, 
+        ForeignKey("Mobiles.id"), primary_key=True)
+    type = Column(String(255), 
+        ForeignKey("Item_Types.name"), primary_key=True)
+    object_id = Column(Integer, 
+        ForeignKey("Objects.id"), nullable=False)
 
     def __str__(self):
         return f"{self.mobile_id}: {self.type} - {self.object_id}"

@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+import argparse
+import threading
+import time
+
+import commands
+import actions
+import players
+
 PROMPT=' >> '
 
 def splash_screen():
@@ -10,13 +18,16 @@ def splash_screen():
  \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
                    |___/ (c)2024 Petrofang                  
 """)
-    
-import time, threading, argparse
-import commands, actions, players
 
-parser = argparse.ArgumentParser(description='Dungeon game (c) Petrofang 2024 - https://github.com/petrofang/dungeon/')
-parser.add_argument( '-d', '--debug', action='store_true', help='Run in debug mode (skip player loading)')
-parser.add_argument( '--hacker_mode', action='store_true', help='Import all modules and drop into Python shell (experts only)') 
+parser = argparse.ArgumentParser(
+    description=('Dungeon game (c) Petrofang 2024 - ', 
+                 'https://github.com/petrofang/dungeon/'))
+parser.add_argument(
+    '-d', '--debug', action='store_true', 
+    help='Run in debug mode (skip player loading)')
+parser.add_argument(
+    '--hacker_mode', action='store_true', 
+    help='Import all modules and drop into Python shell (experts only)') 
 args = parser.parse_args()
 
 def process_game_updates():
@@ -42,30 +53,37 @@ def init():
     # perform other initialization tasks
 
 def main(me):
+    """The main game loop."""
     me.room.look(me)
-    game_update_thread = threading.Thread(target=process_game_updates)
-    user_input_thread = threading.Thread(target=process_user_inputs, args=(me,))
+    game_update_thread = threading.Thread(
+        target=process_game_updates)
+    user_input_thread = threading.Thread(
+        target=process_user_inputs, args=(me,))
     
     user_input_thread.start()
     game_update_thread.start()
     user_input_thread.join()
     game_update_thread.join()
 
-def HACKER_MODE():
+def hacker_mode():
+    """Import all modules and drop into Python shell (experts only)"""
     import code
-    import actions, combat, commands, dice, dungeon_data, mobiles, objects, players, rooms
+    
+    import actions, combat, commands, dice, dungeon_data
+    import mobiles, objects, players, rooms
     me=players.load("Antron")
     code.interact(local=locals())
 
-def DEBUG_ROUTINE():
+def debug_routine():
+    """Run in debug mode (skip player loading)"""
     me=players.load("Antron")
     main(me)
 
 if __name__ == '__main__':
     splash_screen()
     if args.hacker_mode:
-        HACKER_MODE()
+        hacker_mode()
     elif args.debug:
-        DEBUG_ROUTINE()
+        debug_routine()
     else:
         main(init())

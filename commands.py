@@ -2,6 +2,7 @@ import actions, players, rooms
 from mobiles import Mobile, MobileEquipment
 from objects import Object
 from typing import Union
+
 Target = Union[Mobile, Object]
 
 class CommandList():
@@ -40,7 +41,8 @@ class CommandList():
         help           - get a list of commands.
         help <command> - show help for a command.
         '''
-        list_of_commands = sorted(filter(CommandList.__no_dunders, vars(CommandList)))
+        list_of_commands = sorted(filter(CommandList.__no_dunders, 
+                                         vars(CommandList)))
         if arg == None:
             print(CommandList.help.__doc__)
             print(' --- Command List ---')
@@ -165,7 +167,7 @@ class CommandList():
                         actions.do(self, ACTION, target=item) 
                         equips+=1
             
-            if equips==0:print(f"You're already equipped everything you can...")
+            if equips==0:print(f"You're already equipped everything you can.")
         else:   
             for item in self.inventory:
                 if arg in item.name: item_to_equip=item
@@ -179,8 +181,10 @@ class CommandList():
                 if self.equipment[item.type]:
                     n="" 
                     if item_to_equip.type[0] in "aeiou": n="n"
-                    print(f"You are already have a{n} {item_to_equip.type} equipped...")
-                    actions.do(self, "unequip", target=self.equipment[item.type])
+                    print(f"You are already have a{n} ",
+                          f"{item_to_equip.type} equipped...")
+                    actions.do(self, "unequip", 
+                               target=self.equipment[item.type])
                 actions.do(self, ACTION, target=item_to_equip)     
     wear=equip  #TODO only if type not 'weapon'
     wield=equip #TODO only if type is 'weapon'
@@ -354,7 +358,9 @@ def parse(myself, user_input=None) -> bool:
             command_action(self=myself, arg=arg, target=target)
         else: print(f'Unknown command "{command}".')
 
-def find_target(self:Mobile, arg:str, type:Target=None, room_first=True, inv_first=False) -> Target:
+
+def find_target(self:Mobile, arg:str, type:Target = None, room_first=True, 
+                inv_first=False) -> Target:
     """
     search inventory and room for target Object or Mobile
     """
