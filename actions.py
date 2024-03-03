@@ -1,8 +1,7 @@
 import queue, time
 from main import PROMPT
 from objects import Object
-from mobiles import Mobile, MobileInventory, MobileEquipment
-from players import PlayerCharacter
+from mobiles import Mobile, MobilePrototype, MobileInventory, MobileEquipment
 from typing import Union
 from rooms import Exit, RoomInventory, cardinals
 from dungeon_data import session
@@ -31,10 +30,17 @@ class Action():
     def say(self:Mobile, arg:str, target=None):
         print(f'{self} says "{arg}"')
     
-    def announce(self:Mobile=None, arg:str=None, **kwargs):
-        """
-        announce to the room. This may be useful when multi-player is added.
-        """
+    def emote(self:Mobile, arg:str, target=None):
+        print(f"You {arg}.")
+
+    def spawn(self, arg, **kwargs):
+        # arg = ID of the Mobile Prototype you'd like to spawn
+        prototype=session.query(MobilePrototype).filter(MobilePrototype.id==arg).first()
+        prototype.spawn(self)
+
+    def echo(self:Mobile=None, arg:str=None, **kwargs):
+        # announce to the room. This may be useful when multi-player is added.
+        
         print(f"{arg}")
 
     def get(self:Mobile, target:Object, **kwargs):
