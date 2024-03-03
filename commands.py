@@ -1,5 +1,5 @@
-import actions, players, rooms
-from mobiles import Mobile, MobileEquipment
+import actions, players
+from mobiles import Mobile 
 from objects import Object
 from typing import Union
 
@@ -317,7 +317,6 @@ class CommandList():
         # TODO: move exit.close() error checking to here.
         # TODO: containers
 
-
     def quit(self=None, **kwargs):
         """
         quit    - quit the game.
@@ -350,6 +349,7 @@ class CommandList():
     kill=fight
     attack=fight
 
+
 def parse(myself, user_input=None) -> bool:
     """
     This is the command parser, the first link in the chain of command
@@ -358,17 +358,20 @@ def parse(myself, user_input=None) -> bool:
     is checked against the CommandList and (if a command is found) the
     argument is sent for further parsing, sanitizing, and execution.
     """
-    if not user_input: print('Huh?')      
+    if not user_input: print('Huh?\n')      
     else:
+        print()
         user_input=user_input.lower()
-        command, *args = user_input.split()  
-        arg = " ".join(args) if args else None
-        target=arg #target aquisition is handled by each command handler
-        command_action = getattr(CommandList, command, None)
-        if command_action: 
-            command_action(self=myself, arg=arg, target=target)
-        else: print(f'Unknown command "{command}".')
-
+        if myself.room.commands and myself.room.commands.get(user_input):
+            myself.room.command(myself, user_input)
+        else:
+            command, *args = user_input.split()  
+            arg = " ".join(args) if args else None
+            target=arg #target aquisition is handled by each command handler
+            command_action = getattr(CommandList, command, None)
+            if command_action: 
+                command_action(self=myself, arg=arg, target=target)
+            else: print(f'Unknown command "{command}".')
 
 def find_target(self:Mobile, arg:str, type:Target = None, room_first=True, 
                 inv_first=False) -> Target:

@@ -136,6 +136,27 @@ class Room(Base):
     description = Column(String(255), nullable=False)   
     signs = Column(JSON)
     commands = Column(JSON)
+    """
+    JSON format of Room.commands is as follows:
+        {
+            "ring bell":{
+                "action": "(action_name from actions.Action)",
+                "arg":"argument",
+                "target":null
+            }
+        }
+    """
+
+    def command(self, subject, command=None):
+        if command and self.commands:
+            if self.commands[command]:
+                command=self.commands[command]
+                action = command.get("action")
+                arg = command.get("arg")
+                target = command.get("target")
+            if action:
+                from actions import do
+                do(subject, action, arg, target)
 
     @property
     def exits(self):
@@ -191,7 +212,6 @@ class Room(Base):
             print(f"[ {self.name} ] ({self.id})")
             print(f"  {self.description}", end='')
 
-                # List inventory in a natural way
             if self.inventory:
                 if len(self.inventory) == 1:
                     print(f" A solitary {self.inventory[0].name} rests here.")
