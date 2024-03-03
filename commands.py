@@ -60,7 +60,7 @@ class CommandList():
         look <target>  - look at target
         """   
         if arg==None: self.room.look(self)
-        elif arg in self.room.signs.keys():
+        elif self.room.signs and arg in self.room.signs.keys():
             print(self.room.signs[arg])
         else:
             target=find_target(self, arg)
