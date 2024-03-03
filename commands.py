@@ -27,9 +27,9 @@ class CommandList():
         """ 
         docstring - displayed by help <command>
         """
-        ACTION="action"
+        action="action"
         # command logic
-        actions.do(self, ACTION, arg, target)     
+        actions.do(self, action, arg, target)     
     '''
 
     def __no_dunders(arg:str, **kwargs): 
@@ -60,6 +60,8 @@ class CommandList():
         look <target>  - look at target
         """   
         if arg==None: self.room.look(self)
+        elif arg in self.room.signs.keys():
+            print(self.room.signs[arg])
         else:
             target=find_target(self, arg)
             if target is not None:
@@ -75,14 +77,14 @@ class CommandList():
         get <item> - get an item from the room.
         get all    - get all items from the room.
         """  
-        ACTION="get"  
+        action="get"  
         if not arg:
             print("Get what?")
         elif not self.room.inventory:
             print("There is nothing here to get.")
         elif arg=="all":
             for item in self.room.inventory:
-                actions.do(self, ACTION, target=item)
+                actions.do(self, action, target=item)
         else:
             item=None
             for target in self.room.inventory:
@@ -92,14 +94,14 @@ class CommandList():
             if item is None:
                 print(f"Unable to locate '{arg}.'")
             else:
-                actions.do(self, ACTION, target=item)
+                actions.do(self, action, target=item)
 
     def drop(self:Mobile=None, arg:str=None, target:Target=None, **kwargs):
         ''' 
         drop <item> - Drop an item on the ground. 
         drop all    - Drop all items on ground.
         '''
-        ACTION="drop"
+        action="drop"
 
         if not target: # just.. DROP!  
             print("You drop down on one knee.")
@@ -107,13 +109,13 @@ class CommandList():
             print("You have nothing to drop.")
         elif arg=="all":
             for item in self.inventory: 
-                actions.do(self, ACTION, target=item)
+                actions.do(self, action, target=item)
         else:
             item=None    
             for each_item in self.inventory:
                 if arg in each_item.name: item = each_item
             if item is not None:
-                actions.do(self, ACTION, target=item)
+                actions.do(self, action, target=item)
             else:     
                 print(f"'{target.capitalize()}' not found in inventory.")
     
@@ -144,7 +146,7 @@ class CommandList():
         equip <item>    - equips an item in inventory
         equip           - lists equipped items
         """
-        ACTION="equip"
+        action="equip"
     
         # find the item in inventory
         from dungeon_data import session
@@ -164,7 +166,7 @@ class CommandList():
             
                 if item.is_equipable:
                     if not self.equipment[item.type]: 
-                        actions.do(self, ACTION, target=item) 
+                        actions.do(self, action, target=item) 
                         equips+=1
             
             if equips==0:print(f"You're already equipped everything you can.")
@@ -185,7 +187,7 @@ class CommandList():
                           f"{item_to_equip.type} equipped...")
                     actions.do(self, "unequip", 
                                target=self.equipment[item.type])
-                actions.do(self, ACTION, target=item_to_equip)     
+                actions.do(self, action, target=item_to_equip)     
     wear=equip  #TODO only if type not 'weapon'
     wield=equip #TODO only if type is 'weapon'
 
@@ -193,11 +195,11 @@ class CommandList():
         """
         unequip <item>    - removes an equipped item to inventory
         """  
-        ACTION="unequip"
+        action="unequip"
       
         if target=="all":
             for item in self.equipment.values():
-                if item: actions.do(self, ACTION, target=item)
+                if item: actions.do(self, action, target=item)
         else:
             item_to_remove = None
             for equipped_item in self.equipment.values():
@@ -212,7 +214,7 @@ class CommandList():
                 return False
             
             else:
-                actions.do(self, ACTION, target=item_to_remove)
+                actions.do(self, action, target=item_to_remove)
     remove=unequip  #TODO: only if type not 'weapon'
 
     def go(self, arg=None, target=None, **kwargs): 
@@ -221,7 +223,7 @@ class CommandList():
         for cardinal directions you can just type the direction, eg:
         <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>
         """
-        ACTION="go"
+        action="go"
         if not arg:
             print("Go where?")
             return False
@@ -240,7 +242,7 @@ class CommandList():
             print(f"Exit not found in direction '{dir}'")
             return False
 
-        actions.do(self, ACTION, dir)
+        actions.do(self, action, dir)
 
 
     def north(self=None, arg=None, target=None):
@@ -287,32 +289,41 @@ class CommandList():
     nw=northwest
       
     def open(self=None, arg=None, **kwargs):
-        ''' 
+        """ 
         open <exit> - opens a closed exit by direction or key word.
-        '''
-        # TODO: containers
-        ACTION = "open_door"
+        """
         if arg:
             if self.room.exit(arg):
-                actions.do(self, ACTION, arg, self.room.exit(arg))
+                if self.room.exit(arg # a closed, unlocked door:
+                        ).is_door and not self.exit(arg
+                        ).is_open and not self.exit(arg
+                        ).is_locked:  
+                    actions.do(self, "open_door", arg, self.room.exit(arg))
+                else: print(f"The '{arg}' cannot be opened.")
+            else: 
+                pass
+                # TODO: containers
+        else:
+            print("Open what?")
 
     def close(self=None, arg=None, **kwargs):
-        ''' 
+        """
         close <exit> - opens a closed exit by direction or key word.
-        '''
-        # TODO: containers
-        ACTION = "close_door"
+        """
         if arg:
             if self.room.exit(arg):
-                actions.do(self, ACTION, arg, self.room.exit(arg))
+                if self.room.exit(arg).is_door:
+                    actions.do(self, "close_door", arg, self.room.exit(arg))
+        # TODO: move exit.close() error checking to here.
+        # TODO: containers
 
 
     def quit(self=None, **kwargs):
-        ''' 
+        """
         quit    - quit the game.
 
         Ctrl-C to close the game.
-        '''
+        """
         # TODO: close game gracefully
        
         players.unload(self)
@@ -322,19 +333,19 @@ class CommandList():
 
     def say(self, arg=None, **kwargs):
         ''' say - say something'''
-        ACTION = "say"
+        action = "say"
         if arg:
-            actions.do(self, ACTION, arg)
+            actions.do(self, action, arg)
         else: print("Say what?")
 
     def fight(self=None, target=None, **kwargs):
         ''' fight <target> - Initiate combat.'''
-        ACTION="fight"
+        action="fight"
         if not target: print("Who would you like to attack?")
         elif not self.room.mobiles: print("There is no one you can attack.")
         else:
             target=find_target(self, target, Mobile)
-            if target: actions.do(self, ACTION, target=target)
+            if target: actions.do(self, action, target=target)
             else: print(f'There is no {target} here.')
     kill=fight
     attack=fight
