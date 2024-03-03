@@ -3,46 +3,13 @@ from dungeon_data import JSON, relationship, session, String, update
 import actions
 from objects import Object, ItemTypes
 
-
 # Mobile.type should be one of these:    
 valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "fowl", "giant", "ghost", "goblinoid", "humanoid",
                         "monster", "orc", "skeleon", "troll", "undead",
                         "mobile", "player"]
 
-
-class MobilePrototype(Base):
-    """
-    A prototype mobile which can be used to spawn functional mobiles
-    """
-    __tablename__ = "Prototype_Mobiles"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    hp_max = Column(Integer, nullable=False)
-    str=Column(Integer, nullable=False)
-    dex=Column(Integer, nullable=False)
-    int=Column(Integer, nullable=False)
-    attack = Column(Integer, nullable=False)
-    defense = Column(Integer, nullable=False)
-    humanoid = Column(Boolean, nullable=False)
-    description=Column(String)
-    type = Column(String)
-
-    def __init__(self, name, type=None, **kwargs):
-        self.name = name
-        if not type in valid_mobile_types: self.type="mobile"
-        for key, value in kwargs.items:
-            setattr(self, key, value)
-        if self.hp_max: self.hp=self.hp_max
-
-        session.add(self)
-        session.commit()
-
-    def spawn(self, room_id=-1):
-        # TODO: spawn mobiles from Prototype.spawn()
-        pass
-
+       
 
 class Mobile(Base):
     __tablename__ = "Mobiles"
@@ -51,17 +18,20 @@ class Mobile(Base):
     name = Column(String, nullable=False)
     hp_max = Column(Integer, nullable=False)
     hp = Column(Integer, nullable=False)
-    str=Column(Integer, nullable=False)
-    dex=Column(Integer, nullable=False)
-    int=Column(Integer, nullable=False)
+    str = Column(Integer, nullable=False)
+    dex = Column(Integer, nullable=False)
+    int = Column(Integer, nullable=False)
     room_id = Column(Integer, ForeignKey("Rooms.id"))
-        # do not update this directly; update the reference in RoomMobiles 
+        # room_id represents where the mobile is "supposed" to be.
+        # most operations by the game engine use RoomMobiles table.
+        # room_id is necessary for logged-off players who are not 
+        # on the RoomMobiles table. TODO: fix this (last_known_room)?
     humanoid = Column(Boolean, nullable=False)
-    description=Column(String)
+    description = Column(String)
     type = Column(String)
 
     def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1,
-                 attack=0, defense=0, humanoid=False, description=None,
+                humanoid=False, description=None,
                  room_id=None, **kwargs):
         self.name = name
         self.type=type
@@ -71,8 +41,6 @@ class Mobile(Base):
         self.str=str
         self.dex=dex
         self.int=int
-        self.attack=attack
-        self.defense=defense
         self.humanoid=humanoid
         self.description=description
         self.room_id=room_id
@@ -112,17 +80,25 @@ class Mobile(Base):
         Go to another room directly (by room.id)
         
         Note that a trigger in the MySQL database will automatically
-        update Player.room_id based on the change to RoomMobiles.room_id
-            This will need to be changed if using a different database
+            update Player.room_id based on the change to RoomMobiles.room_id
+        
+        This will need to be changed if using a different database
             which does not have triggers (eg SQLite)
         """
 
         from rooms import RoomMobiles
         #transfer to another room by ID
-        session.execute(update(RoomMobiles)
-                        .where(RoomMobiles.mobile_id==self.id)
-                        .values(room_id=to_room_id))
+        present = session.query(
+            RoomMobiles).filter(RoomMobiles.mobile_id==self.id).first()
+        if present:
+            session.execute(
+                update(RoomMobiles
+                ).where(RoomMobiles.mobile_id==self.id
+                ).values(room_id=to_room_id))
+        else:
+            session.add(RoomMobiles(to_room_id, self.id))
         session.commit()
+
         if not silent: self.room.look(self)
 
     @property
@@ -189,6 +165,43 @@ class Mobile(Base):
             print(f"It's just an ordinary {self.name}.")
 
 
+class MobilePrototype(Base):
+    """
+    A prototype mobile which can be used to spawn functional mobiles
+    """
+    __tablename__ = "Prototype_Mobiles"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    hp_max = Column(Integer, nullable=False)
+    str = Column(Integer, nullable=False)
+    dex = Column(Integer, nullable=False)
+    int = Column(Integer, nullable=False)
+    humanoid = Column(Boolean, nullable=False)
+    description = Column(String)
+    type = Column(String)
+
+    def __init__(self, name, type=None, **kwargs):
+        self.name = name
+        if not type in valid_mobile_types: self.type="mobile"
+        for key, value in kwargs.items:
+            setattr(self, key, value)
+        if self.hp_max: self.hp=self.hp_max
+
+        session.add(self)
+        session.commit()
+
+    def spawn(self, invoker:Mobile = None):
+        room_id = invoker.room_id if invoker.room_id else invoker.id
+        # BUG (maybe?) -- might this cause mobs to spawn wrong room?
+        
+        spawn = Mobile(name=self.name, type=self.type, hp_max=self.hp_max, 
+            str=self.str, dex=self.dex, int=self.int, humanoid=self.humanoid,
+            description=self.description)
+        spawn.goto(room_id)
+        session.add(spawn)
+        session.commit()
+ 
 class MobileInventory(Base):
     __tablename__ = "Mobile_Inventory"
 
