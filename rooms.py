@@ -116,12 +116,12 @@ class Exit(Base):
         and the name of the next room (if exit is open)
         """
         way = "entrance to the " if self.entrance else ""
-        way = "way leading " if self.direction in cardinals else way             
+        way = "way " if self.direction in cardinals else way             
         if self.description == None:  # there's no description set
             if not self.is_open:       # and it's closed
                 print(f"The {way}{self.direction} is closed.")
             else:                   # and it's open
-                print(f"The {way}{self.direction} ",
+                print(f"The {way}{self.direction}",
                       f"leads to {self.to_room.name}.")
         else:                     # there is a desciption set   
             closed = "(closed)" if not self.is_open else ""
@@ -141,21 +141,25 @@ class Room(Base):
         {
             "ring bell":{
                 "action": "(action_name from actions.Action)",
-                "arg":"argument",
-                "target":null
+                "echo": "message to be echod to the room
+                "arg": "argument",
+                "target": null
             }
         }
     """
 
     def command(self, subject, command=None):
+        from actions import do
         if command and self.commands:
             if self.commands[command]:
                 command=self.commands[command]
                 action = command.get("action")
                 arg = command.get("arg")
                 target = command.get("target")
+                echo = command.get("echo")
+            if echo: 
+                do(subject, "echo", echo)
             if action:
-                from actions import do
                 do(subject, action, arg, target)
 
     @property
