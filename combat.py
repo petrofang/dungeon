@@ -173,13 +173,13 @@ def parse_combat_command(player:Mobile, enemy:Mobile,
 
 class CombatCommands:
     def flee(player:Mobile=None, combat=None, **kwargs):
-        ACTION="flee"
+        action="flee"
         if not player.room.exits:
             print("There is no direction in which to flee.")
             return None
         else:
             print("You try to find a way way out...")
-            return CombatAction._do(action=ACTION)
+            return CombatAction._do(action=action)
     
 
 class CombatAction: #P.E.A.A.C. :: Player, Enemy, Action, Arguement, Combat
