@@ -124,18 +124,15 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
                 print("Please enter a name.")
     player = session.query(PlayerCharacter
                            ).filter_by(username=username).first()
-
-    # ensure Player.room_id and RoomMobiles.room_id are synchronized:
-
-    # there 'should' be a room_id set, but if not:
-    if not player.room_id: player.room_id=-1
+    # there 'should' be a last_known_room_id set, but if not:
+    if not player.last_known_room_id: player.last_known_room_id=-1
     player.goto(player.last_known_room_id)
     
     return player
 
-def unload(self=None):
+def unload(player=None):
     """
     perform unload tasks for players-characters.
     """
 
-    RoomMobiles.remove(target=self)
+    RoomMobiles.remove(target=player)
