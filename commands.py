@@ -3,8 +3,6 @@ from mobiles import Mobile
 from objects import Object
 from typing import Union
 
-Target = Union[Mobile, Object]
-
 class CommandList():
     ''' 
     This is the master list of all player commands outside of combat,
@@ -23,7 +21,7 @@ class CommandList():
     
     format:
     
-    def command(self:Mobile=None, arg:str=None, target:Target=None):
+    def command(self:Mobile=None, arg:str=None, target=None):
         """ 
         docstring - displayed by help <command>
         """
@@ -36,7 +34,7 @@ class CommandList():
         ''' A filter to show only public commands on the help list.'''
         return not arg.startswith('_')
 
-    def help(self:Mobile=None, arg:str=None, target:Target=None, **kwargs):
+    def help(self:Mobile = None, arg:str = None, target=None, **kwargs):
         ''' 
         help           - get a list of commands.
         help <command> - show help for a command.
@@ -54,16 +52,25 @@ class CommandList():
             print(help_command.__doc__)       
         else: print(f'Unknown command "{arg}".')
 
-    def look(self:Mobile=None, arg:str=None, **kwargs):
+    def look(self:Mobile = None, arg:str = None, **kwargs):
         """
-        look        - look at your surroundings
-        look <target>  - look at target
-        """   
-        if arg==None: self.room.look(self)
+        look - look at your surroundings
+        look <target> - look at target
+        look in <container> - look inside a container 
+        """
+        if arg==None: 
+            self.room.look(self)
+        elif arg.startswith("in "):
+            arg=arg[3:]
+            target=find_target(self, arg, Object, in_room=True, in_inventory=True)
+            if target and target.type == "container":
+                target.look_in()
+            else:
+                print("You cannot see inside that.")
         elif self.room.signs and arg in self.room.signs.keys():
             print(self.room.signs[arg])
         else:
-            target=find_target(self, arg)
+            target=find_target(self, arg, in_room=True, in_inventory=True, in_equipment=True)
             if target is not None:
                 target.look()
             elif self.room.exit(arg): 
@@ -72,31 +79,64 @@ class CommandList():
                 print(f"You see no '{arg}'.")
     l=look
 
+    def put(self:Mobile=None, arg:str=None, target:Object=None, **kwargs):
+        """
+        put <item> in <container> - put an item from the container.
+        """  
+        action="put"  
+        if not arg:
+            print("Put what in what?")
+        else:
+            targets=arg.split(" in ", 1)
+            if len(targets) == 2:
+                targets = [target.strip() for target in targets]
+                item = find_target(self, targets[0], type=Object,
+                                         in_inventory=True)
+                container = find_target(self, targets[1], type=Object, 
+                                         in_inventory=True, in_room=True)
+                if item and container:
+                    actions.do(self, action, container, item)
+                else:
+                    print("Put what in what now?")
+
     def get(self:Mobile=None, arg:str=None, target:Object=None, **kwargs):
         """
         get <item> - get an item from the room.
         get all    - get all items from the room.
+        get <item> from <container> - get an item from a container.
         """  
         action="get"  
         if not arg:
+            # get
             print("Get what?")
         elif not self.room.inventory:
             print("There is nothing here to get.")
         elif arg=="all":
+            # get all
             for item in self.room.inventory:
                 actions.do(self, action, target=item)
+        elif " from " in arg:
+            # get <item> from <container>
+            targets=arg.split(" from ", 1)
+            if len(targets) == 2:
+                targets = [target.strip() for target in targets]
+                item = find_target(self, targets[0], 
+                                   type=Object, in_containers=True)
+                container = find_target(self, targets[1], type=Object, 
+                                        in_inventory=True, in_room=True)
+                if item and container:
+                    actions.do(self, action, container, item)
+                else:
+                    print("Put what in what now?")
         else:
-            item=None
-            for target in self.room.inventory:
-                if arg in target.name:
-                    item=target
-                    break
-            if item is None:
-                print(f"Unable to locate '{arg}.'")
-            else:
+            # get <item>
+            item=find_target(self, arg, Object, in_room=True)
+            if item:
                 actions.do(self, action, target=item)
+            else:
+                print(f"Unable to find '{arg}'.")
 
-    def drop(self:Mobile=None, arg:str=None, target:Target=None, **kwargs):
+    def drop(self:Mobile = None, arg:str = None, target=None, **kwargs):
         ''' 
         drop <item> - Drop an item on the ground. 
         drop all    - Drop all items on ground.
@@ -181,9 +221,8 @@ class CommandList():
             # Check if there's an existing equipment for the specified type
                 
                 if self.equipment[item.type]:
-                    n="" 
-                    if item_to_equip.type[0] in "aeiou": n="n"
-                    print(f"You are already have a{n} ",
+                    n = "n" if item_to_equip.type[0] in "aeiou" else ""
+                    print(f"You are already have a{n}",
                           f"{item_to_equip.type} equipped...")
                     actions.do(self, "unequip", 
                                target=self.equipment[item.type])
@@ -191,7 +230,7 @@ class CommandList():
     wear=equip  #TODO only if type not 'weapon'
     wield=equip #TODO only if type is 'weapon'
 
-    def unequip(self:Mobile=None, arg:str=None, target:Target=None):
+    def unequip(self:Mobile = None, arg:str = None, target=None):
         """
         unequip <item>    - removes an equipped item to inventory
         """  
@@ -295,8 +334,8 @@ class CommandList():
         if arg:
             if self.room.exit(arg):
                 if self.room.exit(arg # a closed, unlocked door:
-                        ).is_door and not self.exit(arg
-                        ).is_open and not self.exit(arg
+                        ).is_door and not self.room.exit(arg
+                        ).is_open and not self.room.exit(arg
                         ).is_locked:  
                     actions.do(self, "open_door", arg, self.room.exit(arg))
                 else: print(f"The '{arg}' cannot be opened.")
@@ -337,13 +376,13 @@ class CommandList():
             actions.do(self, action, arg)
         else: print("Say what?")
 
-    def fight(self=None, target=None, **kwargs):
+    def fight(self=None, arg=None, **kwargs):
         ''' fight <target> - Initiate combat.'''
         action="fight"
-        if not target: print("Who would you like to attack?")
+        if not arg: print("Who would you like to attack?")
         elif not self.room.mobiles: print("There is no one you can attack.")
         else:
-            target=find_target(self, target, Mobile)
+            target=find_target(self, arg, Mobile)
             if target: actions.do(self, action, target=target)
             else: print(f'There is no {target} here.')
     kill=fight
@@ -373,30 +412,83 @@ def parse(myself, user_input=None) -> bool:
                 command_action(self=myself, arg=arg, target=target)
             else: print(f'Unknown command "{command}".')
 
-def find_target(self:Mobile, arg:str, type:Target = None, room_first=True, 
-                inv_first=False) -> Target:
+def find_target(self:Mobile, arg:str, type=None, in_room=False, in_inventory=False,
+                in_equipment=False, in_exits=False, in_containers=False, **kwargs):
     """
-    search inventory and room for target Object or Mobile
+    This function searches for a target item, mobile, or exit by keyword 
+    and returns the game object if found, or None. 
+        arguments:
+            self - the player with whom the search is associated
+            arg - the keyword or name of the item being searched
+            type - Object, Mobile, or None, where None means either/both
+            in_room - search in the player's room. If type=Mobile, the
+                room will be searched even if in_room=False
+            in_inventory - search in the player's inventory.
+            in_equipment - search in the player's equipment.
+            in_containers - search in containers in self room and inventory.
+            in_exits - search for exits in the player's room.
     """
+    # TODO: fuzzywuzzy? .like()?
     target = None
-    if type != Object: 
+    if type is Mobile or type is None: # If it's not an object it must be a Mobile
         for mobile in self.room.mobiles:
-            if arg in mobile.name and mobile is not self: 
-                return mobile
-    if type !=Mobile: 
-        if room_first and not inv_first:
-            for item in self.inventory:
-                if arg in item.name: 
-                    return item
+            if mobile.name.startswith(arg) and mobile is not self: 
+                target = mobile
+            else:
+                names=mobile.name.split()
+                for name in names:
+                    if name.startswith(arg):
+                        target = mobile
+        if target: return target
+    if type is Object or type is None: # and if it's not a mobile it must be an object or None
+        if in_room:
             for item in self.room.inventory:
-                if arg in item.name:    
-                    return item
-        else:
-            for item in self.room.inventory:
-                if arg in item.name:  
-                    return item
+                if item.name.startswith(arg):    
+                    target = item
+                else:
+                    names=item.name.split()
+                    for name in names:
+                        if name.startswith(arg):
+                            target = item
+            if target: return target            
+        if in_inventory:
             for item in self.inventory:
-                if arg in item.name: 
-                    return item
-    else:
-        return None
+                if item.name.startswith(arg): 
+                    target = item
+                else:
+                    names=item.name.split()
+                    for name in names:
+                        if name.startswith(arg):
+                            target = item
+            if target: return target
+        if in_equipment:
+            for item in [item for item in self.equipment.values() if item is not None]:
+                if item.name.startswith(arg): 
+                    target = item
+                else:
+                    names=item.name.split()
+                    for name in names:
+                        if name.startswith(arg):
+                            target = item
+            if target: return target
+        if in_containers:
+            for item in self.room.inventory:
+                if item.contents:
+                    for thing in item.contents:
+                        if thing.name.startswith(arg):
+                            target=thing
+            if target: return target
+            for item in self.inventory:
+                if item.contents:
+                    for thing in item.contents:
+                        if thing.name.startswith(arg):
+                            target=thing
+            if target: return 
+
+    if type is None:                        
+        if in_exits:
+            for exit in self.room.exits:
+                if exit.direction == arg:
+                    target = exit
+        return target
+    return target
