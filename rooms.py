@@ -29,14 +29,14 @@ class Exit(Base):
         is_locked - if it is currently locked
         hidden - if the exit is hidden (not listen in room's exits)
     """
-    __tablename__ = "Exits"
+    __tablename__ = "exits"
 
-    from_room_id = Column(Integer, ForeignKey("Rooms.id"), primary_key=True)
-    to_room_id = Column(Integer, ForeignKey("Rooms.id"), nullable=False)
+    from_room_id = Column(Integer, ForeignKey("rooms.id"), primary_key=True)
+    to_room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)
     direction = Column(String(32), primary_key=True)
     description = Column(String(65535))
     entrance = Column(Boolean, nullable=False) 
-    door = Column(Boolean, nullable=False)
+    is_door = Column(Boolean, nullable=False)
     is_open = Column(Boolean, nullable=False)
     has_lock = Column(Boolean, nullable=False)
     is_locked = Column(Boolean, nullable=False)
@@ -73,7 +73,7 @@ class Exit(Base):
         way = "entrance to the " if self.entrance else ""
         way = "way leading " if self.direction in cardinals else way                
         # is it a door?
-        if self.door:
+        if self.is_door:
             # is it closed?
             if not self.is_open:
                 # is it not locked?
@@ -97,7 +97,7 @@ class Exit(Base):
         way = "entrance to the " if self.entrance else ""
         way = "way leading " if self.direction in cardinals else way             
         # is it a door?
-        if self.door:
+        if self.is_door:
             # is it open?
             if self.is_open:
                 self.is_open=False
@@ -129,7 +129,7 @@ class Exit(Base):
 
 
 class Room(Base):
-    __tablename__ = "Rooms"
+    __tablename__ = "rooms"
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
@@ -141,9 +141,9 @@ class Room(Base):
         {
             "ring bell":{
                 "action": "(action_name from actions.Action)",
-                "echo": "message to be echod to the room
-                "arg": "argument",
-                "target": null
+                "echo": "message to echo to the room
+                "arg": "argument to be passed to actions.do",
+                "target": "target to be passed to actions.do"
             }
         }
     """
@@ -201,6 +201,20 @@ class Room(Base):
 
         return mobiles if mobiles else []
     
+    def remove(self, target=None):
+        """
+        Remove target Object of Mobile from the room. 
+        """
+        from mobiles import Mobile
+        if isinstance(target, Object):
+            if target in self.inventory:
+                session.delete(session.query(RoomInventory).filter(
+                RoomInventory.object_id == target.id).first())
+        elif isinstance(target, Mobile):
+            if target in self.mobiles:
+                session.delete(session.query(RoomMobiles).filter(
+                    RoomMobiles.mobile_id == target.id).first())
+
     def look(self, viewer, sign=None, **kwargs):
         """
         Displays the title, description, items, mobiles, exits of given room.
@@ -263,48 +277,29 @@ class Room(Base):
 
 
 class RoomInventory(Base):
-    __tablename__ = "Room_Inventory"
+    __tablename__ = "room_inventory"
 
     id = Column(Integer, primary_key=True)
-    room_id = Column(Integer, ForeignKey("Rooms.id"), nullable=False)  
-    object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)  
+    object_id = Column(Integer, ForeignKey("objects.id"), nullable=False)
     room = relationship("Room")
     object = relationship("Object")
+
+    def __init__(self, room_id, object_id):
+        self.room_id=room_id
+        self.object_id=object_id
 
 
 class RoomMobiles(Base):
     from mobiles import Mobile
-    __tablename__="Room_Mobiles"
+    __tablename__="room_mobiles"
 
     id = Column(Integer, primary_key=True)
-    room_id = Column(Integer, ForeignKey("Rooms.id"), nullable=False)  
-    mobile_id = Column(Integer, ForeignKey("Mobiles.id"), nullable=False)  
+    room_id = Column(Integer, ForeignKey("rooms.id"), nullable=False)  
+    mobile_id = Column(Integer, ForeignKey("mobiles.id"), nullable=False)  
     room = relationship("Room")
     mobile = relationship("Mobile")
 
     def __init__(self, room_id, mobile_id):
         self.room_id=room_id
         self.mobile_id=mobile_id
-
-    def remove(target: Mobile) -> bool:
-        """
-        Removes the specified mobile from the current room by 
-        deleting the corresponding row in the RoomMobiles table.
-
-        Args:
-            target: The Mobile object representing the mobile to be removed.
-
-        Returns:
-            True if the mobile was removed successfully, False otherwise.
-        """
-
-        try:
-            session.query(RoomMobiles).filter(
-                RoomMobiles.mobile_id == target.id).delete()
-            session.commit()
-            return True
-        except Exception as e:
-            # Handle potential errors gracefully
-            session.rollback()
-            print(f"Error removing mobile {target.name}: {e}")
-            return False
