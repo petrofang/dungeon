@@ -43,10 +43,10 @@ class Combat:
         
     @property 
     def COMBAT_PROMPT(self):
-         return (
-            f"You: {self.player.hp}/{self.player.hp_max}HP;",
+         prompt = (f"You: {self.player.hp}/{self.player.hp_max}HP;",
             f" {self.enemy.name}: {self.enemy.hp}/{self.enemy.hp_max}HP",
             "\n >> ")
+         return ''.join(prompt)
         
     def combat_user_input(self, player:Mobile, enemy:Mobile):
         while self.engaged==True:
@@ -107,7 +107,7 @@ class Combat:
         attacker_d20, defender_d20 = d(20), d(20)
         hit = (attacker.dex + attacker_d20) - (defender.dex+defender_d20)
         print(f"hit roll: [ dex({attacker.dex})+d20({attacker_d20}) ",
-              "v. dex({defender.dex})+d20({defender_d20}) ] = {hit}")
+              f"v. dex({defender.dex})+d20({defender_d20}) ] = {hit}")
         # TODO: add combat skills for accuracy, dodge
         
         sleep(1)
@@ -118,6 +118,7 @@ class Combat:
             sleep(4)
 
         else:
+            # TODO: fix this mess, describe armor mitigation better
             print(f"{attacker} makes contact!")
             sleep(1) 
 
@@ -137,7 +138,7 @@ class Combat:
             damage = ((attacker.str //4 + damage_roll) - 
                       (defender.str // 4 + armor_rating))
             print(f"{max(damage, 0)} damage inflicted!")
-            defender.hp -= damage
+            defender.hp -= max(damage,0)
             session.commit
 
     def status_check(self, attacker=None, defender=None):
