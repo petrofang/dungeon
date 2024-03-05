@@ -6,17 +6,19 @@ STARTING_ROOM=-1 # Heck
 
 
 class PlayerCharacter(Mobile): 
-    __tablename__ = "Players"
+    __tablename__ = "players"
 
-    id = Column(Integer, ForeignKey("Mobiles.id"), primary_key=True)
+    id = Column(Integer, ForeignKey("mobiles.id"), primary_key=True)
     username = Column(String(255), unique=True, nullable=False)
     experience = Column(Integer, default=0)
     level = Column(Integer, default=1)
     skills = Column(JSON, nullable=True)
     stats = Column(JSON, nullable=True)
+    last_known_room_id = Column(Integer)
 
     def __init__(self, username:str, **kwargs):
         self.username=username
+        self.last_known_room_id=STARTING_ROOM
         super().__init__(username, **kwargs)
 
         self.id = -self.id # negative IDs help with sorting on Mobiles table
@@ -71,7 +73,7 @@ def new(username: str = None) -> PlayerCharacter:
     if username is None:
         # Prompt for username
         while True:
-            username = input("What is your name, adventurer?  > ", end="")
+            username = input("What is your name, adventurer?  > ")
             if username:
                 username = username.capitalize()
                 # Check if username already exists
@@ -127,7 +129,7 @@ def load(username: str = None) -> PlayerCharacter: # type: ignore
 
     # there 'should' be a room_id set, but if not:
     if not player.room_id: player.room_id=-1
-    player.goto(player.room_id)
+    player.goto(player.last_known_room_id)
     
     return player
 

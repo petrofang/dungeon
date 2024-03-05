@@ -9,10 +9,9 @@ valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "monster", "orc", "skeleon", "troll", "undead",
                         "mobile", "player"]
 
-       
 
 class Mobile(Base):
-    __tablename__ = "Mobiles"
+    __tablename__ = "mobiles"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
@@ -21,11 +20,6 @@ class Mobile(Base):
     str = Column(Integer, nullable=False)
     dex = Column(Integer, nullable=False)
     int = Column(Integer, nullable=False)
-    room_id = Column(Integer, ForeignKey("Rooms.id"))
-        # room_id represents where the mobile is "supposed" to be.
-        # most operations by the game engine use RoomMobiles table.
-        # room_id is necessary for logged-off players who are not 
-        # on the RoomMobiles table. TODO: fix this (last_known_room)?
     humanoid = Column(Boolean, nullable=False)
     description = Column(String)
     type = Column(String)
@@ -43,17 +37,21 @@ class Mobile(Base):
         self.int=int
         self.humanoid=humanoid
         self.description=description
-        self.room_id=room_id
-        if self.room_id:
+        if room_id:
             from rooms import RoomMobiles
-            RoomMobiles(self.room_id, self.id)
+            RoomMobiles(room_id, self.id)
 
         for key, value in kwargs.items():
             setattr(self, key, value)
         
         session.add(self)
         session.commit()
-         
+    
+    def room_id(self):
+        from rooms import RoomMobiles
+        room_id = session.query(RoomMobiles.room_id).filter(
+            RoomMobiles.mobile_id == self.id)
+
     def die(self): 
         for item in self.equipment.values(): # unequip all items
             actions.do(self, "unequip", target=item)
@@ -75,31 +73,32 @@ class Mobile(Base):
 
     def __str__(self): return self.name
 
-    def goto(self, to_room_id, silent=True):
+    def goto(self, to_room_id):
         """
         Go to another room directly (by room.id)
-        
-        Note that a trigger in the MySQL database will automatically
-            update Player.room_id based on the change to RoomMobiles.room_id
-        
-        This will need to be changed if using a different database
-            which does not have triggers (eg SQLite)
         """
 
-        from rooms import RoomMobiles
-        #transfer to another room by ID
-        present = session.query(
-            RoomMobiles).filter(RoomMobiles.mobile_id==self.id).first()
-        if present:
-            session.execute(
-                update(RoomMobiles
-                ).where(RoomMobiles.mobile_id==self.id
-                ).values(room_id=to_room_id))
-        else:
-            session.add(RoomMobiles(to_room_id, self.id))
-        session.commit()
-
-        if not silent: self.room.look(self)
+        from rooms import Room, RoomMobiles
+        # check if self is already somewhere. 
+        #   update location if so,
+        #   add location if not
+        
+        # TODO: check if to_room_id is valid
+        room_id_list = [room[0] for room in session.query(Room.id).all()]
+        if to_room_id not in room_id_list:
+            raise ValueError(to_room_id)
+        else:    
+            present = session.query(RoomMobiles).filter(
+                RoomMobiles.mobile_id == self.id).first()
+            if present:
+                session.execute(
+                    update(RoomMobiles
+                    ).where(RoomMobiles.mobile_id==self.id
+                    ).values(room_id=to_room_id))
+            else:
+                session.add(RoomMobiles(to_room_id, self.id))
+            self.last_known_room_id = to_room_id  
+            session.commit()
 
     @property
     def inventory(self):
@@ -147,6 +146,38 @@ class Mobile(Base):
         # 6. Return the dictionary of equipped items
         return equipped_items
 
+    def equip(self, item:Object):
+        # add item to equipped items
+        if self.equipment[item.type] == None:
+            session.add(
+                MobileEquipment(
+                    mobile_id=self.id, 
+                    type=item.type, 
+                    object_id=item.id))
+            session.commit()
+        else: raise Exception(f'Mobile already has equipment["{item.type}"]')
+    
+    def remove_from_inventory(self, item:Object):
+        # remove an item from inventory:
+        if item in self.inventory:
+            inventory_listing = session.query(MobileInventory).filter(
+                MobileInventory.object_id == item.id).first()
+            session.delete(inventory_listing)
+            session.commit()
+
+    def add_to_inventory(self, item:Object):
+        # add an item to inventory
+        if item not in self.inventory:
+            session.add(MobileInventory(mobile_id=self.id, object_id=item.id))
+            session.commit()
+        
+    def unequip(self, item:Object):
+        # remove item from equipment
+        if item in self.equipment.values():
+            session.delete(MobileEquipment).filter(
+                MobileEquipment.object_id == item.id).first()
+            session.commit()
+
     @property
     def room(self):
         from rooms import Room, RoomMobiles
@@ -169,7 +200,7 @@ class MobilePrototype(Base):
     """
     A prototype mobile which can be used to spawn functional mobiles
     """
-    __tablename__ = "Prototype_Mobiles"
+    __tablename__ = "mobile_prototypes"
 
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
@@ -203,25 +234,25 @@ class MobilePrototype(Base):
         session.commit()
  
 class MobileInventory(Base):
-    __tablename__ = "Mobile_Inventory"
+    __tablename__ = "mobile_inventory"
 
     id = Column(Integer, primary_key=True)
-    mobile_id = Column(Integer, ForeignKey("Mobiles.id"), nullable=False)
-    object_id = Column(Integer, ForeignKey("Objects.id"), nullable=False)
+    mobile_id = Column(Integer, ForeignKey("mobiles.id"), nullable=False)
+    object_id = Column(Integer, ForeignKey("objects.id"), nullable=False)
     quantity = Column(Integer, nullable=True, default=1)
     mobile = relationship("Mobile")
     item = relationship("Object")
 
 
 class MobileEquipment(Base):
-    __tablename__ = "Mobile_Equipment"
+    __tablename__ = "mobile_equipment"
 
     mobile_id = Column(Integer, 
-        ForeignKey("Mobiles.id"), primary_key=True)
+        ForeignKey("mobiles.id"), primary_key=True)
     type = Column(String(255), 
-        ForeignKey("Item_Types.name"), primary_key=True)
+        ForeignKey("item_types.name"), primary_key=True)
     object_id = Column(Integer, 
-        ForeignKey("Objects.id"), nullable=False)
+        ForeignKey("objects.id"), nullable=False)
 
     def __str__(self):
         return f"{self.mobile_id}: {self.type} - {self.object_id}"
