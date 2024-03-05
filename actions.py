@@ -93,19 +93,24 @@ class Action():
             Combat(self, target)
 
     def go(self:Mobile, arg:str, **kwargs):
-        if self.room.exit(arg).is_open:
-            if arg in cardinals:
-                print(f'You go {arg}...')
+        exit = self.room.exit(arg) 
+        if exit.is_open:
+            if exit.direction in cardinals:
+                print(f'You go {exit.direction}...')
+            elif exit.entrance:
+                print(f'You enter the {exit.direction}.')
             else:
-                print(f'You go through the {arg}...')
+                print(f'You go through the {exit.direction}...')
             time.sleep(.5)
-            self.goto(self.room.exit(arg).to_room.id)
+            self.goto(exit.to_room.id)
             self.room.look(self)
         else: 
-            if arg in cardinals:
-                print(f"The way {arg} is closed.")
+            if exit.direction in cardinals:
+                print(f"The way {exit.direction} is closed.")
+            elif exit.entrance:
+                print(f"The entrance to the {exit.direction} is closed.")
             else:
-                print(f"The {arg} is closed.")
+                print(f"The {exit.direction} is closed.")
     
     def open_door(self:Mobile, arg:str, target:Exit):
         target.open()
