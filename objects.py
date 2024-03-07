@@ -52,30 +52,30 @@ class Object(Base):
         return any(row.is_equipable for row in session.query(
             ItemTypes).filter(ItemTypes.name == self.type))
         
-    def look(self, **kwargs):
+    def look(self, viewer):
         """
         Displays the name and description of the object.
         """
         if self.description:
-            print(f"{self.name}:")
-            print(f"  {self.description}")
+            viewer.print(f"{self.name}:")
+            viewer.print(f"  {self.description}")
         else:  
-            print(f"It's just an ordinary {self.name}.", end=" ")
+            viewer.print(f"It's just an ordinary {self.name}.", end=" ")
             # TODO: stats?
 
-    def look_in(self, **kwargs):
+    def look_in(self, viewer):
         # TODO open/close containers
         # if not self.is_open: print("It is closed.")
         if not self.contents: # and self.is_open:
-            print(f"A {self.name} appears to be empty.")
+            viewer.print(f"A {self.name} appears to be empty.")
         else:
-            print(f"A {self.name} contains", end=" ")
+            viewer.print(f"A {self.name} contains", end=" ")
             if len(self.contents) == 1:
-                print(f"nothing but a {self.contents[0].name}.")
+                viewer.print(f"nothing but a {self.contents[0].name}.")
             else:    
                 for item in self.contents[:-1]:
-                    print(f"a {item.name}", end=", ")
-                print(f"and a {self.contents[-1].name}.")
+                    viewer.print(f"a {item.name}", end=", ")
+                viewer.print(f"and a {self.contents[-1].name}.")
         
     
     def put(self, item=None):
