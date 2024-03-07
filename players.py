@@ -1,9 +1,12 @@
+import socket
 from dungeon_data import Column, ForeignKey, Integer, JSON, String, session
 from mobiles import Mobile
 from rooms import RoomMobiles
+import actions
 
 STARTING_ROOM=-1 # Heck
 
+connections = [] # List of connected players (player objects)
 
 class PlayerCharacter(Mobile): 
     __tablename__ = "players"
@@ -16,19 +19,16 @@ class PlayerCharacter(Mobile):
     stats = Column(JSON, nullable=True)
     last_known_room_id = Column(Integer)
 
-    def __init__(self, username:str, **kwargs):
-        self.username=username
-        self.last_known_room_id=STARTING_ROOM
+    def __init__(self, username:str, socket:socket.socket, **kwargs):
         super().__init__(username, **kwargs)
-
-        self.id = -self.id # negative IDs help with sorting on Mobiles table
-        self.hp_max=100
-        self.hp=self.hp_max   
-        self.humanoid=True
-        self.experience=0
-        self.level=1
-        self.skills
-        self.stats
+        self.last_known_room_id = STARTING_ROOM
+        self.socket = socket # socket
+        self.username = username
+        self.hp_max = 100
+        self.hp = self.hp_max   
+        self.humanoid = True
+        self.experience = 0
+        self.level = 1
         self.type="player"
 
         for key, value in kwargs.items():
@@ -43,22 +43,49 @@ class PlayerCharacter(Mobile):
 
     def die(self):
         # what to do when a player dies... 
-        print("You lose consciousness...")
+        actions.echo_at(self, "You lose consciousness...")
+        actions.echo_around(self, f"{self} has lost consciousness!")
         self.goto(-1)
         self.hp=self.hp_max
 
-    def look(self, **kwargs):
+    def look(self, viewer):
         """
         Displays the name and description of a given player-character.
         """
         if self.description:
-            print(f"[ {self.name} ] ({self.id})")
-            print(f"  {self.description}")
+            viewer.print(f"[ {self.name} ] ({self.id})")
+            viewer.print(f"  {self.description}")
         else:
-            print(f"It's {self.name}, the player-character.")
+            viewer.print(f"It's {self.name}, a fellow adventurer.")
+
+    def load(self):
+        """
+        any tasks or checks that need to be done when loading a player
+        """   
+        connections.append(self) 
+        self.goto(self.last_known_room_id if self.last_known_room_id else -1)
+
+    def unload(player=None):
+        """
+        perform unload tasks for players-characters.
+        """
+        if player in connections: connections.remove(player)
+        player.room.remove(target=player)
+        player.socket.close()
+
+    def print(self, message = "", end="\n"):
+        """
+        Receives print statements and forwards them to the player's socket,
+            if applicable.
+        """
+        try:
+            self.socket.send(f"{message}{end}".encode())
+        except:
+            print(f"error sending to {self.name}'s socket:")
+            print(f"{message}")
 
 
-def new(username: str = None) -> PlayerCharacter:
+def new(socket, username) -> PlayerCharacter:
     """
     Creates a new player character.
 
@@ -70,69 +97,13 @@ def new(username: str = None) -> PlayerCharacter:
         A Player object representing the new character.
     """
 
-    if username is None:
-        # Prompt for username
-        while True:
-            username = input("What is your name, adventurer?  > ")
-            if username:
-                username = username.capitalize()
-                # Check if username already exists
-                if session.query(
-                        PlayerCharacter).filter_by(
-                        username=username).first():
-                    print("That name is already taken.")
-                else:
-                    break
-            else:
-                print("\nPlease enter a name.  > ", end="")
-    
-    username = username.capitalize()    
+    username = username.capitalize()
     # Create new player instance with default values
-    player = PlayerCharacter(username=username)
+    player = PlayerCharacter(username=username, socket=socket)
 
-    # Save the new player to the database
     session.add(player)
     session.commit()
 
     # Inform the user and return the new player
-    print(f"Welcome to the game, {username}!")
+    player.print(f"Welcome home, {username}!")
     return player
-
-def load(username: str = None) -> PlayerCharacter: # type: ignore
-    """
-    Loads a player from the database based on their username.
-    """
-    if username is None:
-        # Prompt for username
-        while True:
-            username = input("Player to load > ")
-            username=username.capitalize()
-            if username:
-                # Check if username doesn't already exist:
-                if not session.query(
-                        PlayerCharacter).filter_by(
-                        username=username).first():
-                    print("username not found.")
-                    newb=input("would you like to make a new character, ",
-                               f"{username}? (Y/N) > ")
-                    if newb:
-                        if newb.upper()[0]=="Y": 
-                            return new(username)
-                else:
-                    break
-            else:
-                print("Please enter a name.")
-    player = session.query(PlayerCharacter
-                           ).filter_by(username=username).first()
-    # there 'should' be a last_known_room_id set, but if not:
-    if not player.last_known_room_id: player.last_known_room_id=-1
-    player.goto(player.last_known_room_id)
-    
-    return player
-
-def unload(player=None):
-    """
-    perform unload tasks for players-characters.
-    """
-
-    RoomMobiles.remove(target=player)
