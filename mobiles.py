@@ -24,12 +24,12 @@ class Mobile(Base):
     description = Column(String)
     type = Column(String)
 
-    def __init__(self, name, type=None, hp_max=1, str=1, dex=1, int=1,
+    def __init__(self, name, type="mobile", hp_max=1, str=1, dex=1, int=1,
                 humanoid=False, description=None,
                  room_id=None, **kwargs):
         self.name = name
         self.type=type
-        if not type in valid_mobile_types: self.type="mobile"
+        if not self.type in valid_mobile_types: self.type="mobile"
         self.hp_max=hp_max
         self.hp=self.hp_max
         self.str=str
@@ -44,9 +44,6 @@ class Mobile(Base):
         for key, value in kwargs.items():
             setattr(self, key, value)
         
-        session.add(self)
-        session.commit()
-    
     def room_id(self):
         from rooms import RoomMobiles
         room_id = session.query(RoomMobiles.room_id).filter(
@@ -54,7 +51,7 @@ class Mobile(Base):
 
     def die(self): 
         for item in self.equipment.values(): # unequip all items
-            actions.do(self, "unequip", target=item)
+            if item: self.unequip(item)
 
         for item in self.inventory: # drop all items
             actions.do(self, "drop", target=item)
@@ -83,7 +80,7 @@ class Mobile(Base):
         #   update location if so,
         #   add location if not
         
-        # TODO: check if to_room_id is valid
+        # check if to_room_id is valid
         room_id_list = [room[0] for room in session.query(Room.id).all()]
         if to_room_id not in room_id_list:
             raise ValueError(to_room_id)
@@ -155,7 +152,8 @@ class Mobile(Base):
                     type=item.type, 
                     object_id=item.id))
             session.commit()
-        else: raise Exception(f'Mobile already has equipment["{item.type}"]')
+        else: 
+            print(f'{self} already has equipment["{item.type}"]')
     
     def remove_from_inventory(self, item:Object):
         # remove an item from inventory:
@@ -174,7 +172,7 @@ class Mobile(Base):
     def unequip(self, item:Object):
         # remove item from equipment
         if item in self.equipment.values():
-            session.delete(MobileEquipment).filter(
+            if item: session.delete(MobileEquipment).filter(
                 MobileEquipment.object_id == item.id).first()
             session.commit()
 
@@ -185,15 +183,15 @@ class Mobile(Base):
             RoomMobiles.mobile_id == self.id).filter(
             RoomMobiles.room_id == Room.id).first()
 
-    def look(self, **kwargs):
+    def look(self, viewer):
         """
         Displays the name and description of a given mobile.
         """
         if self.description:
-            print(f"[ {self.name} ] ({self.id})")
-            print(f"  {self.description}")
+            viewer.print(f"[ {self.name} ] ({self.id})")
+            viewer.print(f"  {self.description}")
         else:
-            print(f"It's just an ordinary {self.name}.")
+            viewer.print(f"It's just an ordinary {self.name}.")
 
 
 class MobilePrototype(Base):
@@ -223,7 +221,7 @@ class MobilePrototype(Base):
         session.commit()
 
     def spawn(self, invoker:Mobile = None):
-        room_id = invoker.room_id if invoker.room_id else invoker.id
+        room_id = invoker.room.id if invoker.room.id else invoker.id
         # BUG (maybe?) -- might this cause mobs to spawn wrong room?
         
         spawn = Mobile(name=self.name, type=self.type, hp_max=self.hp_max, 
