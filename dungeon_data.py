@@ -1,9 +1,11 @@
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
 from sqlalchemy import MetaData, JSON, Boolean, and_, update, delete
-# Some of these imports are accessed in chain by other modules.
+# Some of these imports are accessed by other modules which import from here.
 
 DATABASE = 'mysql+mariadbconnector://dm:dungeonmaster@localhost/dungeon'
+# TODO : take this out of hardcode and put in config file with .gitignore
+
 VERBOSE = False
 
 if VERBOSE:
@@ -14,4 +16,4 @@ else:
 metadata = MetaData()
 Session = sessionmaker(bind=engine)
 session = Session()
-Base = declarative_base()  # Establish base class for models
+Base = declarative_base()
