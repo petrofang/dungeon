@@ -60,72 +60,45 @@ class Exit(Base):
         return session.query(Room).filter(Room.id==self.from_room_id).first()
 
     def unlock(self):
+        # TODO: make an actions.Action.unlock() method
         # TODO: check for key in actions.Action.unlock()
         self.is_locked=False
 
     def lock(self):
-        # TODO: check for key in actions.Action.unlock()
+        # TODO: make an actions.Action.lock() method
+        # TODO: check for key in actions.Action.lock()
         if self.has_lock: self.is_locked=True
 
-    def open(self): # TODO: handle error checking with CommandList.close()
-                    # and the echoing should be handled by actions.Action
-
-        way = "entrance to the " if self.entrance else ""
-        way = "way leading " if self.direction in cardinals else way                
-        # is it a door?
-        if self.is_door:
-            # is it closed?
-            if not self.is_open:
-                # is it not locked?
-                if not self.is_locked:
+    def open(self): # TODO: handle echoing in actions.Action.open_door()
                     self.is_open=True
                     self.backref.is_open=True
                     session.commit()
-                    print(f"You open the {way}{self.direction}.")
-                # is it locked?
-                else:
-                    print("You try to open it, but it is locked.")
-            # is it open?
-            else:
-                print(f"The {way}{self.direction} is already open.")
-        # is it not a door?
-        else:
-            print(f"The {way}{self.direction} cannot be opened nor closed.")
 
-    def close(self): # TODO: handle error checking with CommandList.close()
-                     # and the echoing should be handled by actions.Action
-        way = "entrance to the " if self.entrance else ""
-        way = "way leading " if self.direction in cardinals else way             
-        # is it a door?
-        if self.is_door:
-            # is it open?
-            if self.is_open:
+    def close(self): 
                 self.is_open=False
                 self.backref.is_open=False
-                print(f"You close the {way}{self.direction}.")
-            # is it closed?
-            else:
-                print(f"The {way}{self.direction} is already closed.")
-        # is it not a door?
-        else: 
-            print(f"The {way}{self.direction} cannot be closed nor opened.")
+                session.commit()
 
-    def look(self, **kwargs):
+    @property
+    def way(self):
+        way = "entrance to the " if self.entrance else ""
+        way = "way " if self.direction in cardinals else way   
+        return way
+
+    def look(self, viewer):
         """
         Displays description of an exit, 
         and the name of the next room (if exit is open)
-        """
-        way = "entrance to the " if self.entrance else ""
-        way = "way " if self.direction in cardinals else way             
+        """           
         if self.description == None:  # there's no description set
             if not self.is_open:       # and it's closed
-                print(f"The {way}{self.direction} is closed.")
+                viewer.print(f"The {self.way}{self.direction} is closed.")
             else:                   # and it's open
-                print(f"The {way}{self.direction}",
+                viewer.print(f"The {self.way}{self.direction}",
                       f"leads to {self.to_room.name}.")
         else:                     # there is a desciption set   
             closed = "(closed)" if not self.is_open else ""
-            print(f"[ {self.direction} ]: {closed}\n  {self.description}")
+            viewer.print(f"[ {self.direction} ]: {closed}\n  {self.description}")
 
 
 class Room(Base):
@@ -138,18 +111,18 @@ class Room(Base):
     commands = Column(JSON)
     """
     JSON format of Room.commands is as follows:
-        {
-            "ring bell":{
-                "action": "(action_name from actions.Action)",
-                "echo": "message to echo to the room
-                "arg": "argument to be passed to actions.do",
-                "target": "target to be passed to actions.do"
-            }
+    {
+        "perform action":{
+            "action": "action_name" # method in actions.Action,
+            "echo": "message to echo to the room"
+            "arg": "argument to be passed to actions.do",
+            "target": "target to be passed to actions.do"
         }
+    }
     """
 
     def command(self, subject, command=None):
-        from actions import do
+        import actions
         if command and self.commands:
             if self.commands[command]:
                 command=self.commands[command]
@@ -158,9 +131,9 @@ class Room(Base):
                 target = command.get("target")
                 echo = command.get("echo")
             if echo: 
-                do(subject, "echo", echo)
+                actions.echo(subject, echo)
             if action:
-                do(subject, action, arg, target)
+                actions.do(subject, action, arg, target)
 
     @property
     def exits(self):
@@ -201,9 +174,22 @@ class Room(Base):
 
         return mobiles if mobiles else []
     
+    @property
+    def players(self):
+        """
+        Room.players - list of all players in the room
+        """
+        players = []
+        from players import PlayerCharacter
+        for mobile in self.mobiles:
+            player = session.query(PlayerCharacter).filter(
+                PlayerCharacter.id == mobile.id).first()
+            if player: players.append(player)
+        return players
+    
     def remove(self, target=None):
         """
-        Remove target Object of Mobile from the room. 
+        Remove target Object or Mobile from the room. 
         """
         from mobiles import Mobile
         if isinstance(target, Object):
@@ -214,6 +200,17 @@ class Room(Base):
             if target in self.mobiles:
                 session.delete(session.query(RoomMobiles).filter(
                     RoomMobiles.mobile_id == target.id).first())
+        session.commit()
+
+    def add(self, target):
+        """
+        add target Object or Mobile to the room
+        """
+        from mobiles import Mobile
+        if isinstance(target, Mobile): RoomMobiles(self, target.id)
+        elif isinstance(target, Object): RoomInventory(self, target.id)
+        session.commit()
+
 
     def look(self, viewer, sign=None, **kwargs):
         """
@@ -223,43 +220,50 @@ class Room(Base):
             viewer - The player who is the doing the looking.
             sign - a 'sign' or extra description within the room.
         """
-
-        if sign and self.signs:
-            if sign in self.signs.keys(): print(self.signs[sign])
+        
+        if sign:
+            if self.signs and sign in self.signs.keys(): 
+                viewer.print(self.signs[sign])
         else:
-            print(f"[ {self.name} ] ({self.id})")
-            print(f"  {self.description}", end='')
+            viewer.print(f"[ {self.name} ] ({self.id})")
+            viewer.print(f"  {self.description}", end='')
 
             if self.inventory:
                 if len(self.inventory) == 1:
-                    print(f" A solitary {self.inventory[0].name} rests here.")
+                    viewer.print(f" A solitary {self.inventory[0].name} rests here.")
                 else:
-                    print(" Scattered about, you see a", end="")
+                    viewer.print(" Scattered about, you see a", end="")
                     for i, obj in enumerate(self.inventory[:-1]):
-                        print(f" {obj.name}", end=",")
-                    print(f" and a {self.inventory[-1].name}.")
+                        viewer.print(f" {obj.name}", end=",")
+                    viewer.print(f" and a {self.inventory[-1].name}.")
             
 
             # List mobiles; filter out the player character
             other_mobiles = [mobile for mobile in self.mobiles 
                             if mobile.id != viewer.id]
-            if other_mobiles:
-                print(" Sharing the space with you ", end="")
+            other_mobiles_names = []
+            for mobile in other_mobiles:
+                if mobile.type == "player" or mobile.type == "NPC":
+                    other_mobiles_names.append(mobile.name)
+                else:
+                    other_mobiles_names.append(f"a {mobile.name}")
+            if other_mobiles_names:
+                viewer.print(" Sharing the space with you ", end="")
 
                 # Handle edge case: single mobile
-                if len(other_mobiles) == 1:
-                    print(f"is {other_mobiles[0].name}.")
+                if len(other_mobiles_names) == 1:
+                    viewer.print(f"is {other_mobiles_names[0]}.")
 
                 else:
-                    print("are", end="")
-                    for i, mob in enumerate(other_mobiles[:-1]):
-                        print(f" {mob.name}", end=",")
-                    print(f" and {other_mobiles[-1].name}.")
+                    viewer.print("are", end="")
+                    for mob in other_mobiles_names[:-1]:
+                        viewer.print(f" {mob}", end=",")
+                    viewer.print(f" and {other_mobiles_names[-1]}.")
             
-            if not other_mobiles and not self.inventory:
-                print()
+            if not other_mobiles_names and not self.inventory:
+                viewer.print()
 
-            print("  Obvious exits:\n[ ", end="")
+            viewer.print("  Obvious exits:\n[ ", end="")
             # list of non-hidden exits. 
             #   cardinal directions added first, 
             #   then keyword exits
@@ -269,11 +273,12 @@ class Room(Base):
             obvious_exits.extend([exit.direction for exit in self.exits 
                                 if exit.direction not in cardinals 
                                 and exit.hidden==False])
-            if not obvious_exits: print('None')
+            if not obvious_exits: 
+                viewer.print('None')
             else:
                 obvious_exits=", ".join(obvious_exits)
-                print(obvious_exits, end="")
-            print(" ]")
+                viewer.print(obvious_exits, end="")
+            viewer.print(" ]")
 
 
 class RoomInventory(Base):
