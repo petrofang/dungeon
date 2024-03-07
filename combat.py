@@ -2,9 +2,12 @@ from random import random
 from commands import parse
 from time import sleep
 from mobiles import Mobile
+from players import PlayerCharacter
 from dice import d
 from dungeon_data import session
 import threading, traceback
+from actions import echo, echo_at, echo_around
+import server
 
 class Combat:
     player=None
@@ -22,11 +25,12 @@ class Combat:
          # determine initiative:
         if enemy.dex > player.dex: 
             
-            print(f"{enemy} gains initiative.")
+            echo(player, f"{enemy} gains initiative.")
             attacker=enemy
             defender=player
         else:
-            print(f"{player} gains initiative.")
+            echo_around(player, f"{player} gains initiative.")
+            echo_at(player, "You gain initiative.")
             attacker=player
             defender=enemy
 
@@ -48,10 +52,10 @@ class Combat:
             "\n >> ")
          return ''.join(prompt)
         
-    def combat_user_input(self, player:Mobile, enemy:Mobile):
+    def combat_user_input(self, player:PlayerCharacter, enemy:Mobile):
         while self.engaged==True:
-            print(f"{self.COMBAT_PROMPT}")
-            command = input()
+            echo_at(player, f"{self.COMBAT_PROMPT}")
+            command = server.receive(player.socket)
             if not self.engaged:
                 parse(self.player, command)
                 return
@@ -63,7 +67,7 @@ class Combat:
                                                          self)
                 self.combat_lock.release()
 
-    def combat_turn(self, attacker:Mobile, defender:Mobile):
+    def combat_turn(self, attacker, defender):
         self.combat_lock.acquire()
         try:
             if self.combat_command:
@@ -84,11 +88,11 @@ class Combat:
             self.combat_lock.release()
         self.status_check(attacker, defender)
         if self.engaged:
-            print(f"{self.COMBAT_PROMPT}")   
+            echo_at(self.player, f"{self.COMBAT_PROMPT}")   
             sleep(6)
             self.combat_turn(defender, attacker)
  
-    def standard_attack(self, attacker:Mobile, defender:Mobile):
+    def standard_attack(self, attacker, defender):
         """
         a standard attack sequence:
             1. determine if a hit was made:
@@ -100,26 +104,26 @@ class Combat:
                vs. defender.str//4 + armor rating
             3. subtract max(dmg,0) from defender.hp
         """
-        
-        print(f"{attacker.name.capitalize()} attacks {defender}.")
+        # TODO: take more care with the echo, echo_at, echo_around....
+        echo(self.player, f"{attacker.name.capitalize()} attacks {defender}.")
         sleep(1)
 
         attacker_d20, defender_d20 = d(20), d(20)
         hit = (attacker.dex + attacker_d20) - (defender.dex+defender_d20)
-        print(f"hit roll: [ dex({attacker.dex})+d20({attacker_d20}) ",
+        echo_at(self.player, f"hit roll: [ dex({attacker.dex})+d20({attacker_d20}) ",
               f"v. dex({defender.dex})+d20({defender_d20}) ] = {hit}")
         # TODO: add combat skills for accuracy, dodge
         
         sleep(1)
         if hit <= 0: # ( if miss )
-            if hit<=-10: print(f"{defender} easily evades the attack.")
-            elif hit<0: print(f"{defender} evades the attack.")
-            elif hit==0: print(f"{defender} narrowly evades the attack!")
+            if hit<=-10: echo(self.player, f"{defender} easily evades the attack.")
+            elif hit<0: echo(self.player, f"{defender} evades the attack.")
+            elif hit==0: echo(self.player, f"{defender} narrowly evades the attack!")
             sleep(4)
 
         else:
             # TODO: fix this mess, describe armor mitigation better
-            print(f"{attacker} makes contact!")
+            echo(self.player, f"{attacker} makes contact!")
             sleep(1) 
 
             # determine damage roll
@@ -137,7 +141,7 @@ class Combat:
             
             damage = ((attacker.str //4 + damage_roll) - 
                       (defender.str // 4 + armor_rating))
-            print(f"{max(damage, 0)} damage inflicted!")
+            echo(self.player, f"{max(damage, 0)} damage inflicted!")
             defender.hp -= max(damage,0)
             session.commit
 
@@ -150,12 +154,12 @@ class Combat:
     def disengage(self):
         # end combat
         self.engaged=False
-        print(" >> ", end="")
+        echo_at(self.player, " >> ", end="")
 
 def parse_combat_command(player:Mobile, enemy:Mobile, 
                          args:str, combat:Combat):
     if not args: 
-        print("Huh?")
+        echo_at(player, "Huh?")
         return None
     else:
         command, *args = args.split()
@@ -168,7 +172,7 @@ def parse_combat_command(player:Mobile, enemy:Mobile,
                                   arg=arg, 
                                   combat=combat)
         else:
-            print(f"Unknown combat action: '{command}.'")
+            echo_at(player, f"Unknown combat action: '{command}.'")
             return None
     
 
@@ -176,10 +180,11 @@ class CombatCommands:
     def flee(player:Mobile=None, combat=None, **kwargs):
         action="flee"
         if not player.room.exits:
-            print("There is no direction in which to flee.")
+            echo_at(player,"There is no direction in which to flee.")
             return None
         else:
-            print("You try to find a way way out...")
+            echo_at(player,"You try to find a way way out...")
+            echo_around(player, f"{player} is trying to escape!")
             return CombatAction._do(action=action)
     
 
@@ -207,8 +212,8 @@ class CombatAction: #P.E.A.A.C. :: Player, Enemy, Action, Arguement, Combat
                     player.goto(exit.to_room_id)
                     return True
                 else:
-                    print("You try to move toward the exit ",
-                          "but your path is cut off.")
+                    echo_at(player, "You try to move toward the exit but your path is cut off.")
+                    echo_around(player, f"{player} is out-maneuvered by {combat.enemy}!")
                     return False
             
             
