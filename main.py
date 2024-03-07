@@ -3,11 +3,8 @@ import argparse
 import threading
 import time
 
-import commands
+import server
 import actions
-import players
-
-PROMPT=' >> '
 
 def splash_screen():
     print(r"""
@@ -18,13 +15,22 @@ def splash_screen():
  \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
                    |___/ (c)2024 Petrofang                  
 """)
+    
+
+"""
+TODO:
+    * add open/close to container objects 
+    * add lock/unlock to container objects
+    * figure out how keys work
+    * fix echo_around,
+        * broadcast
+    
+"""
+
 
 parser = argparse.ArgumentParser(
     description=('Dungeon game (c) Petrofang 2024 - ', 
                  'https://github.com/petrofang/dungeon/'))
-parser.add_argument(
-    '-d', '--debug', action='store_true', 
-    help='Run in debug mode (skip player loading)')
 parser.add_argument(
     '--hacker_mode', action='store_true', 
     help='Import all modules and drop into Python shell (experts only)') 
@@ -35,35 +41,13 @@ def process_game_updates():
         time.sleep(6)
         actions.update_game()
 
-def process_user_inputs(user=None):
-    print(f'Hint: type HELP for a list of commands')
-    while True: 
-        user_input = input(PROMPT)
-        commands.parse(user, user_input)
-
-def init():
-    # load or generate a character:
-    me = None
-    while not me:
-        user_input=input('(L)oad a character or (N)ew?' + PROMPT)
-        if user_input[0].upper() == 'N': me = players.new()
-        elif user_input[0].upper() == 'L': me = players.load()
-        else: print("...")  
-    return me
-    # perform other initialization tasks
-
-def main(me):
+def main():
     """The main game loop."""
-    me.room.look(me)
-    game_update_thread = threading.Thread(
-        target=process_game_updates)
-    user_input_thread = threading.Thread(
-        target=process_user_inputs, args=(me,))
-    
-    user_input_thread.start()
+    game_update_thread = threading.Thread(target = process_game_updates)
     game_update_thread.start()
-    user_input_thread.join()
-    game_update_thread.join()
+    server.wait_for_connections()
+
+
 
 def hacker_mode():
     """Import all modules and drop into Python shell (experts only)"""
@@ -71,19 +55,11 @@ def hacker_mode():
     
     import actions, combat, commands, dice, dungeon_data
     import mobiles, objects, players, rooms
-    me=players.load("Antron")
     code.interact(local=locals())
-
-def debug_routine():
-    """Run in debug mode (skip player loading)"""
-    me=players.load("Antron")
-    main(me)
 
 if __name__ == '__main__':
     splash_screen()
     if args.hacker_mode:
         hacker_mode()
-    elif args.debug:
-        debug_routine()
     else:
-        main(init())
+        main()
