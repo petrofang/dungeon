@@ -1,5 +1,6 @@
 import socket
 import threading
+import miniupnpc
 
 from dungeon_data import session
 import commands
@@ -10,16 +11,6 @@ PORT = 4000
 MAX_CONNECTIONS = 5
 PROMPT=' >> '
 
-# open a server socket for listening
-print(f"initializing server...")
-print(f"host: {HOST}")
-print(f"port: {PORT}")
-print(f"max connections: {MAX_CONNECTIONS}")
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
-server.bind((HOST, PORT))
-server.listen(MAX_CONNECTIONS)
-
 splash_screen = r"""
      _  Eventually, there may be a                                
   __| |_   _ _ __   __ _  ___  ___  _ __  
@@ -28,6 +19,35 @@ splash_screen = r"""
  \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
                    |___/ (c)2024 Petrofang                  
 """
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+def start_game_server():
+    # open a server socket for listening
+    print(f"initializing server...")
+    print(f"host: {HOST}")
+    print(f"port: {PORT}")
+    print(f"max connections: {MAX_CONNECTIONS}")
+    try:
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+        server.bind((HOST, PORT))
+        server.listen(MAX_CONNECTIONS)
+    except Exception:
+        print(f"Unable to start server: \n{Exception.with_traceback()}")
+        server.close()
+        quit()
+
+def enable_upnp_port_mapping():
+    # uPnP: port mapping
+    try:
+        upnp = miniupnpc.UPnP()
+        upnp.discoverdelay = 10
+        upnp.discover()
+        # addportmapping(external-port, protocol, internal-host, internal-port, description, remote-host)
+        upnp.addportmapping(PORT, 'TCP', upnp.lanaddr, PORT, 'dungeon', '')
+        print("Universal Plug-n-Play successfully enabled.")
+    except: 
+        print("Universal Plug-n-Play could not be enabled!")
+        print("  Please check the Gateway (http://10.0.0.1) ")
 
 def send(socket, message="", end="\n"):
     """
@@ -59,7 +79,7 @@ def wait_for_connections():
             send(socket, f"Password for {player.name}:  ")
             password = receive(socket)
             # TODO: Password hashing and verification here
-            send(socket, "TODO: actually check the password")
+            send(socket, "TODO: *actually* check the password")
 
         elif not player:
             # TODO: Character creation
@@ -101,4 +121,5 @@ def handle_connection(player:players.PlayerCharacter):
             print(f"{player} has left the realm.")
 
 if __name__=="__main__": 
-    wait_for_connections()
+    print("Execute main.py, not this.")
+    quit()
