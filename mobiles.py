@@ -221,8 +221,7 @@ class MobilePrototype(Base):
         session.commit()
 
     def spawn(self, invoker:Mobile = None):
-        room_id = invoker.room.id if invoker.room.id else invoker.id
-        # BUG (maybe?) -- might this cause mobs to spawn wrong room?
+        room_id = invoker.room.id
         
         spawn = Mobile(name=self.name, type=self.type, hp_max=self.hp_max, 
             str=self.str, dex=self.dex, int=self.int, humanoid=self.humanoid,
