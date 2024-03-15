@@ -104,8 +104,13 @@ class Combat:
                vs. defender.str//4 + armor rating
             3. subtract max(dmg,0) from defender.hp
         """
-        # TODO: take more care with the echo, echo_at, echo_around....
-        echo(self.player, f"{attacker.name.capitalize()} attacks {defender}.")
+        echo_around(self.player, f"{attacker.name.capitalize()} attacks {defender}.")
+        if self.player==attacker:
+            echo_at(self.player, f"You attack {defender}.")
+        else:
+            echo_at(self.player, f"{attacker.name.capitalize()} attacks you.")
+
+        
         sleep(1)
 
         attacker_d20, defender_d20 = d(20), d(20)
@@ -116,14 +121,33 @@ class Combat:
         
         sleep(1)
         if hit <= 0: # ( if miss )
-            if hit<=-10: echo(self.player, f"{defender} easily evades the attack.")
-            elif hit<0: echo(self.player, f"{defender} evades the attack.")
-            elif hit==0: echo(self.player, f"{defender} narrowly evades the attack!")
+            if defender is self.player:
+                if hit<=-10: 
+                    echo_at(self.player, f"You easily evade the attack.")
+                    echo_around(self.player, f"{defender} easily evades the attack.")
+                elif hit<0: 
+                    echo_at(self.player, f"You evade the attack.") 
+                    echo_around(self.player, f"{defender} evades the attack.")
+                elif hit==0: 
+                    echo_at(self.player, f"You narrowly evade the attack!")
+                    echo_around(self.player, f"{defender} narrowly evades the attack!")
+            
+
+            else:
+                if hit<=-10: echo(self.player, f"{defender} easily evades the attack.")
+                elif hit<0: echo(self.player, f"{defender} evades the attack.")
+                elif hit==0: echo(self.player, f"{defender} narrowly evades the attack!")
+            
+            
             sleep(4)
 
         else:
             # TODO: fix this mess, describe armor mitigation better
-            echo(self.player, f"{attacker} makes contact!")
+            if attacker==self.player:
+                echo_at(self.player, f"You make contact!")
+                echo_around(self.player, f"{attacker} makes contact!")
+            else:
+                echo(self.player, f"{attacker} makes contact!")
             sleep(1) 
 
             # determine damage roll
@@ -141,7 +165,7 @@ class Combat:
             
             damage = ((attacker.str //4 + damage_roll) - 
                       (defender.str // 4 + armor_rating))
-            echo(self.player, f"{max(damage, 0)} damage inflicted!")
+            echo_at(self.player, f"{max(damage, 0)} damage inflicted!")
             defender.hp -= max(damage,0)
             session.commit
 
@@ -208,8 +232,10 @@ class CombatAction: #P.E.A.A.C. :: Player, Enemy, Action, Arguement, Combat
             if exit.is_open and not exit.hidden:  
                 if d(20) < player.dex/len(player.room.exits):
                     combat.disengage()
-                    print("You flee to fight another day.")
+                    echo_at(player, "You see an opening and make a break for it!")
+                    echo_around(player, f"{player} sees an opening and makes a break for it!") 
                     player.goto(exit.to_room_id)
+                    echo_around(player, f"{player} comes huffing in.")
                     return True
                 else:
                     echo_at(player, "You try to move toward the exit but your path is cut off.")
