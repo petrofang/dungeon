@@ -27,7 +27,6 @@ class Action():
     # TODO: better error and exception handling throughout
     # TODO: consistant method parameters (positional, not keyword?)
     #       (get rid of **kwargs)
-    # TODO: update all print() to Player.print() 
 
     def say(subject:Mobile, arg:str, target=None):
         echo_around(subject, f'{subject} says "{arg}"')
@@ -35,8 +34,10 @@ class Action():
     
     def emote(subject:Mobile, arg:str, target=None):
         emote = arg
-        # TODO: echo at and around
-        echo(subject, f"{subject} {emote}.")
+        if emote:
+            if emote[-1] not in ";,'.!?\"":
+                emote = emote + "."
+            echo(subject, f"{subject} {emote}")
 
     def spawn(subject, arg, **kwargs):
         # arg = ID of the Mobile Prototype you'd like to spawn
