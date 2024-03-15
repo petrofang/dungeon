@@ -22,8 +22,6 @@ TODO:
     * add open/close to container objects 
     * add lock/unlock to container objects
     * figure out how keys work
-    * fix echo_around,
-        * broadcast
     
 """
 
@@ -43,6 +41,8 @@ def process_game_updates():
 
 def main():
     """The main game loop."""
+    server.start_game_server()
+#    server.enable_upnp_port_mapping()
     game_update_thread = threading.Thread(target = process_game_updates)
     game_update_thread.start()
     server.wait_for_connections()
@@ -54,7 +54,7 @@ def hacker_mode():
     import code
     
     import actions, combat, commands, dice, dungeon_data
-    import mobiles, objects, players, rooms
+    import mobiles, objects, players, rooms, server
     code.interact(local=locals())
 
 if __name__ == '__main__':
