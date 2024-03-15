@@ -274,7 +274,7 @@ class Room(Base):
                                 if exit.direction not in cardinals 
                                 and exit.hidden==False])
             if not obvious_exits: 
-                viewer.print('None')
+                viewer.print('None', end="")
             else:
                 obvious_exits=", ".join(obvious_exits)
                 viewer.print(obvious_exits, end="")
