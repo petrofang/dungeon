@@ -179,6 +179,7 @@ def echo_global(message:str = "", end="\n"):
     """
     echo a message to all players.
     """
-    from players import connections
-    for one in connections:
-        echo_at(one, message, end)
+    import players
+    for id in players.player_sockets.keys():
+        player = players.get_player_by_id(id)
+        echo_at(player, message, end)
