@@ -23,7 +23,7 @@ class Exit(Base):
             than the exit itself. This is necessary to avoid things like
             "Player goes house," or "Player goes through the house," which
             both have unintended meanings from "Player enters the house". 
-        door - if the exit can be opened and closed. 
+        is_door - if the exit can be opened and closed. 
         is_open - if the door is open (False if closed)
         has_lock - if it is lockable
         is_locked - if it is currently locked
@@ -192,14 +192,19 @@ class Room(Base):
         Remove target Object or Mobile from the room. 
         """
         from mobiles import Mobile
+
         if isinstance(target, Object):
-            if target in self.inventory:
-                session.delete(session.query(RoomInventory).filter(
-                RoomInventory.object_id == target.id).first())
+            for item in self.inventory:
+                if item.id == target.id:
+                    session.delete(session.query(RoomInventory).filter(
+                        RoomInventory.object_id == target.id).first())
+                    break
         elif isinstance(target, Mobile):
-            if target in self.mobiles:
-                session.delete(session.query(RoomMobiles).filter(
-                    RoomMobiles.mobile_id == target.id).first())
+            for creature in self.mobiles:
+                if creature.id == target.id:
+                    session.delete(session.query(RoomMobiles).filter(
+                        RoomMobiles.mobile_id == target.id).first())
+                    break
         session.commit()
 
     def add(self, target):
