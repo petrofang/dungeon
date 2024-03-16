@@ -60,8 +60,8 @@ class Mobile(Base):
         from rooms import RoomMobiles
         session.execute(delete(RoomMobiles).filter_by(mobile_id=self.id))
         
-        print(f"{self.name.capitalize()} is destroyed. ",
-              "Ashes to ashes, dust to dust.")
+        actions.echo_around(self, f"{self.name.capitalize()} is destroyed.", end=" ") 
+        actions.echo_around(self, "Ashes to ashes, dust to dust.")
 
         # delete from database table:
         session.execute(delete(Mobile).filter_by(id=self.id))
