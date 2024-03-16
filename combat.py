@@ -2,7 +2,7 @@ from random import random
 from commands import parse
 from time import sleep
 from mobiles import Mobile
-from players import PlayerCharacter
+from players import PlayerCharacter, player_sockets
 from dice import d
 from dungeon_data import session
 import threading, traceback
@@ -55,7 +55,7 @@ class Combat:
     def combat_user_input(self, player:PlayerCharacter, enemy:Mobile):
         while self.engaged==True:
             echo_at(player, f"{self.COMBAT_PROMPT}")
-            command = server.receive(player.socket)
+            command = server.receive(player_sockets[player.id])
             if not self.engaged:
                 parse(self.player, command)
                 return
