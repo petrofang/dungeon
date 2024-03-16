@@ -53,11 +53,27 @@ def send(socket, message="", end="\n"):
     """
     send message to a connected socket
     """
-    socket.send(f"{message}{end}".encode())
+    try:
+        socket.send(f"{message}{end}".encode())
+    except BrokenPipeError:
+        # possibly client sent EOF? (Ctrl-D)
+        print(f"connection lost to {socket}.")
+        socket.close()
+
+
 
 def receive(socket):
-    user_input = socket.recv(1024).decode()
-    return user_input
+    try:
+        user_input = socket.recv(1024).decode()
+        return user_input
+    except (ConnectionError, OSError) as e:
+        print(f"Socket error: {e}")
+        # socket is probably disconnected...
+        # do a reverse lookup to unload player by socket:
+        for id, sock in players.player_sockets:
+            if sock == socket:
+                players.get_player_by_id(id).unload()
+                break
 
 def wait_for_connections():
     """
@@ -91,9 +107,8 @@ def wait_for_connections():
         if not player: # still? ... hey, we tried!
             socket.close()
         else:
-            player.socket=socket
-            print(f"{address[0]} has loaded player {player.name}")
-            player.load()
+            print(f"{address[0]} is loading player {player.name}")
+            player.load(socket)
             connection_thread = threading.Thread(
                 target=handle_connection,
                 args = (player,))
@@ -106,19 +121,21 @@ def handle_connection(player:players.PlayerCharacter):
     player.print(f'Hint: type HELP for a list of commands')
         
     while True:
+        try: # OUTPUT PROMPT (check socket connection)
+            socket = players.player_sockets[player.id]
+            send(socket, PROMPT, end="")
+        except Exception:
+            player.unload()
+            break
+
         try:
-            send(player.socket, PROMPT, end="")
-            user_input = receive(player.socket)
+            user_input = receive(socket)
             user_input = user_input.strip()
             commands.parse(player, user_input)
         except Exception:
-            if player in players.connections:
-                players.connections.remove(player)
-                print(f"{player} removed from connections.")
-            else: print(f"{player} was not listed in connections (?)")
+            # TODO: What is even happening here
             player.unload()
-            player.socket.close()
-            print(f"{player} has left the realm.")
+            break
 
 if __name__=="__main__": 
     print("Execute main.py, not this.")
