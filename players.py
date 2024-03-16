@@ -4,9 +4,9 @@ from mobiles import Mobile
 from rooms import RoomMobiles
 import actions
 
-STARTING_ROOM=-1 # Heck
+STARTING_ROOM = -1 # Heck
 
-connections = [] # List of connected players (player objects)
+player_sockets = {} # dictionary of connected sockets -- player.id:socket
 
 class PlayerCharacter(Mobile): 
     __tablename__ = "players"
@@ -58,20 +58,31 @@ class PlayerCharacter(Mobile):
         else:
             viewer.print(f"It's {self.name}, a fellow adventurer.")
 
-    def load(self):
+    def load(self, socket):
         """
         any tasks or checks that need to be done when loading a player
         """   
-        connections.append(self) 
-        self.goto(self.last_known_room_id if self.last_known_room_id else -1)
+        # add this player id to the player-sockets list
+        player_sockets[self.id] = socket
+        # move self to last known room
+        self.goto(self.last_known_room_id 
+                  if self.last_known_room_id 
+                  else STARTING_ROOM)
 
-    def unload(player=None):
+    def unload(self):
         """
         perform unload tasks for players-characters.
         """
-        if player in connections: connections.remove(player)
-        player.room.remove(target=player)
-        player.socket.close()
+        # make sure last_known_room_id is set, then remove self from room
+        self.last_known_room_id = self.room.id
+        self.room.remove(target=self)
+
+        # remove self from sockets dictionary, if still there
+        if self.id in player_sockets.keys():
+            player_sockets[self.id].close() # will this cause an error?
+            player_sockets.pop(self.id)
+        else:
+            print(f"WARNING: {self.name} was already not in sockets list")
 
     def print(self, message = "", end="\n"):
         """
@@ -79,7 +90,12 @@ class PlayerCharacter(Mobile):
             if applicable.
         """
         try:
-            self.socket.send(f"{message}{end}".encode())
+            if self.id in player_sockets.keys():
+                socket = player_sockets[self.id]
+                socket.send(f"{message}{end}".encode())
+            else:
+                print(f"socket not found for {self.name}, unloading player")
+                self.unload()
         except:
             print(f"error sending to {self.name}'s socket:")
             print(f"{message}")
@@ -106,4 +122,12 @@ def new(socket, username) -> PlayerCharacter:
 
     # Inform the user and return the new player
     player.print(f"Welcome home, {username}!")
+
+    # add socket to active player list by player id
+    player_sockets[player.id] = socket  
+    return player
+
+def get_player_by_id(id):
+    player = session.query(
+        PlayerCharacter).filter(PlayerCharacter.id == id).first()
     return player
