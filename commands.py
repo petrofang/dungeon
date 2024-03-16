@@ -397,8 +397,8 @@ class CommandList():
         quit    - save and quit the game.
         """
         # TODO: close game gracefully
-       
-        players.unload(subject)
+        subject.unload()
+        
     q=quit
 
     def say(subject, arg=None, **kwargs):
