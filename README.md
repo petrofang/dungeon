@@ -9,9 +9,10 @@ Description:
     
 Installation:
     The game runs directly from the python source code, so you will need
-    Python 3 to run it. The database runs on MySQL / MariaDB, so you will
-    need that installed too. Run "main.py" to enter the main game loop.
-    You can then connect via Telnet or your favorite MUD client.
+    Python 3 to run it. The database runs on SQLite which shoud be included
+    with Python. Run "main.py" to enter the main game loop. You can then 
+    connect via Telnet or your favorite MUD client. By default, the 
+    connection IP will be 127.0.0.1 port 4000
 
 License: 
     MIT License
