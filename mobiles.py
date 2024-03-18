@@ -4,6 +4,7 @@ import actions
 from objects import Object, ItemTypes
 
 # Mobile.type should be one of these:    
+# TODO: make this a database table (why didn't it work earlier?)
 valid_mobile_types = [ "abberation", "animal", "construct", "dragon", "fey",
                         "fowl", "giant", "ghost", "goblinoid", "humanoid",
                         "monster", "orc", "skeleon", "troll", "undead",
@@ -23,6 +24,7 @@ class Mobile(Base):
     humanoid = Column(Boolean, nullable=False)
     description = Column(String)
     type = Column(String)
+    prototype_id = Column(Integer) 
 
     def __init__(self, name, type="mobile", hp_max=1, str=1, dex=1, int=1,
                 humanoid=False, description=None,
