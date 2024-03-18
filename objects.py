@@ -18,6 +18,18 @@ class Container(Base):
         except:
             raise
 
+class ObjectPrototype(Base):
+    __tablename__ = "object_prototypes"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    type = Column(String, nullable=False)
+    rating = Column(Integer, nullable=False)
+    description = Column(String)
+    data = Column(JSON)
+
+    # TODO: __init__(), spawn()
+
 class Object(Base):
     __tablename__ = "objects"
 
@@ -27,6 +39,7 @@ class Object(Base):
     rating = Column(Integer, nullable=False)
     description = Column(String)
     data = Column(JSON)
+    prototype_id = Column(Integer)
 
     def __init__(self, name:str="item", type:str="item", rating=0, **kwargs):
         self.name=name
