@@ -256,17 +256,33 @@ class CommandList():
                 actions.do(subject, action, target=item_to_remove)
     remove = unequip  #TODO: only if type not 'weapon'
 
+    def climb(subject, arg=None, target=None):
+        action = "go"
+        if not arg: 
+            subject.print("Climb what?")
+            return
+        dir = arg
+        for exit in subject.room.exits:
+            if exit.direction == dir and exit.climb == True: break
+        else: 
+            subject.print(f"You cannot climb '{dir}'.")
+            return False
+        
+        actions.do(subject, action, dir)
+
+
     def go(subject, arg=None, target=None, **kwargs): 
         """ 
         go <direction>  - move into the next room in <direction>
         for cardinal directions you can just type the direction, eg:
         <north|east|south|west|[etc.]> or <N|NE|E|SE|S|SW|W|NW>
         """
-        action="go"
+        action = "go"
         if not arg:
             subject.print("Go where?")
             return False
-        dir=arg
+        go_exit = None
+        dir = arg
         if dir=='n':dir='north'
         if dir=='ne':dir='northeast'
         if dir=='e':dir='east'
@@ -276,13 +292,16 @@ class CommandList():
         if dir=='w':dir='west'
         if dir=='nw':dir='northwest'
         for exit in subject.room.exits:
-            if exit.direction==dir: break
+            if exit.direction==dir: 
+                go_exit = exit
+                break
         else: 
             subject.print(f"Exit not found in direction '{dir}'")
             return False
-
-        actions.do(subject, action, dir)
-
+        if go_exit.climb:
+            actions.echo_at(subject, "You must climb to go that way.")
+        else:
+            actions.do(subject, action, dir)
 
     def north(subject=None, arg=None, target=None):
         ''' alias for GO NORTH.'''
