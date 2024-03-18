@@ -79,6 +79,7 @@ def wait_for_connections():
     """
     receive player connections and hand them off to the handler.
     """
+    # TODO: Crashproof this with exception handlers
     while True: # wait for connection:
         socket, address = server.accept()
         print(f"connection: {address}")
@@ -120,6 +121,7 @@ def handle_connection(player:players.PlayerCharacter):
     """    
     player.print(f'Hint: type HELP for a list of commands')
         
+    # TODO: Crashproof this with exception handlers
     while True:
         try: # OUTPUT PROMPT (check socket connection)
             socket = players.player_sockets[player.id]
