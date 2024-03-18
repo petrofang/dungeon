@@ -27,7 +27,10 @@ class Exit(Base):
         is_open - if the door is open (False if closed)
         has_lock - if it is lockable
         is_locked - if it is currently locked
-        hidden - if the exit is hidden (not listen in room's exits)
+        hidden - if the exit is hidden (not listed in room's exits)
+        climb - if player must "climb" to use the exit
+        key_id - the id of the prototype key item (object.prototype_id)
+                 note: don't use object.id
     """
     __tablename__ = "exits"
 
@@ -41,7 +44,9 @@ class Exit(Base):
     has_lock = Column(Boolean, nullable=False)
     is_locked = Column(Boolean, nullable=False)
     hidden = Column(Boolean, nullable=False)
-    # TODO - keys.. how to make non-unique key object? JSON
+    climb = Column(Boolean, nullable=False)
+    key_id = Column(Integer) 
+
 
     @property
     def backref(self):
@@ -71,12 +76,12 @@ class Exit(Base):
 
     def open(self): # TODO: handle echoing in actions.Action.open_door()
                     self.is_open=True
-                    self.backref.is_open=True
+                    if self.backref: self.backref.is_open=True
                     session.commit()
 
     def close(self): 
                 self.is_open=False
-                self.backref.is_open=False
+                if self.backref: self.backref.is_open=False
                 session.commit()
 
     @property
@@ -94,7 +99,7 @@ class Exit(Base):
             if not self.is_open:       # and it's closed
                 viewer.print(f"The {self.way}{self.direction} is closed.")
             else:                   # and it's open
-                viewer.print(f"The {self.way}{self.direction}",
+                viewer.print(f"The {self.way}{self.direction} ",
                       f"leads to {self.to_room.name}.")
         else:                     # there is a desciption set   
             closed = "(closed)" if not self.is_open else ""
@@ -113,14 +118,17 @@ class Room(Base):
     JSON format of Room.commands is as follows:
     {
         "perform action":{
-            "action": "action_name" # method in actions.Action,
-            "echo": "message to echo to the room"
+            "action": "action_name",
             "arg": "argument to be passed to actions.do",
-            "target": "target to be passed to actions.do"
+            "target": "target to be passed to actions.do",
+            "echo_at": "message to echo to the player",
+            "echo_around": "message to others in player's room",
+            "echo": "message to echo to all in the room"
         }
     }
     """
 
+    # TODO: add echo_at, echo_around
     def command(self, subject, command=None):
         import actions
         if command and self.commands:
@@ -130,10 +138,13 @@ class Room(Base):
                 arg = command.get("arg")
                 target = command.get("target")
                 echo = command.get("echo")
-            if echo: 
-                actions.echo(subject, echo)
-            if action:
-                actions.do(subject, action, arg, target)
+                echo_at = command.get("echo_at")
+                echo_around = command.get("echo_around")
+            if echo: actions.echo(subject, echo)
+            if echo_at: actions.echo_at(subject, echo_at)
+            if echo_around: actions.echo_around(subject, echo_around)
+            
+            if action: actions.do(subject, action, arg, target)
 
     @property
     def exits(self):
