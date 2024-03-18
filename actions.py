@@ -39,11 +39,19 @@ class Action():
                 emote = emote + "."
             echo(subject, f"{subject} {emote}")
 
-    def spawn(subject, arg, **kwargs):
-        # arg = ID of the Mobile Prototype you'd like to spawn
-        prototype=session.query(MobilePrototype).filter(
-            MobilePrototype.id==arg).first()
-        prototype.spawn(invoker=subject)
+    def spawn(subject, arg=1, target=None):
+        # subject = person spawning (location to spawn)
+        # target = ID of the Mobile Prototype you'd like to spawn
+        # arg = max instances of spawned mobile in the room
+        prototype = session.query(MobilePrototype).filter(
+            MobilePrototype.id==target).first()
+        max_mobs = arg 
+        mob_count = 0
+        for mobile in subject.room.mobiles:
+            if mobile.prototype_id == arg:
+                mob_count += 1
+        if mob_count < max_mobs:
+            prototype.spawn(invoker=subject) if prototype else None
 
     # TODO: check the positional argument here:
     def get(subject:Mobile, target:Object, arg:Object=None, **kwargs):
@@ -99,22 +107,42 @@ class Action():
             from combat import Combat
             Combat(subject, target)
 
+    def transfer(subject, arg, target:int):
+        # transfer the player/mobile directly to the target room
+        room_id = target
+        subject.goto(room_id)
+
+
     def go(subject:Mobile, arg:str, **kwargs):
         exit = subject.room.exit(arg) 
         if exit.is_open:
             if exit.direction in cardinals:
-                echo_at(subject, f'You go {exit.direction}...')
-                echo_around(subject, f'{subject} goes {exit.direction}.')
-                
+                if not exit.climb:        
+                    echo_at(subject, f'You go {exit.direction}...')
+                    echo_around(subject, f'{subject} goes {exit.direction}.')
+                else:
+                    echo_at(subject, f'You climb {exit.direction}...')
+                    echo_around(subject, f'{subject} climbs {exit.direction}.')
             elif exit.entrance:
-                echo_at(subject, f'You enter the {exit.direction}...')
-                echo_around(subject, f'{subject} enters the {exit.direction}.')
+                if not exit.climb:    
+                    echo_at(subject, f'You enter the {exit.direction}...')
+                    echo_around(subject, f'{subject} enters the {exit.direction}.')
+                else:
+                    echo_at(subject, f'You climb into the {exit.direction}...')
+                    echo_around(subject, f'{subject} climbs into the {exit.direction}.')
             else:
-                echo_at(subject, f'You go through the {exit.direction}...')
-                echo_around(subject, f'{subject} goes through the {exit.direction}.')
+                if not exit.climb:
+                    echo_at(subject, f'You go through the {exit.direction}...')
+                    echo_around(subject, f'{subject} goes through the {exit.direction}.')
+                else:
+                    echo_at(subject, f'You climb the {exit.direction}...')
+                    echo_around(subject, f'{subject} climbs the {exit.direction}.')
             time.sleep(.5)
-            subject.goto(exit.to_room.id)
-            echo_around(subject, f"{subject} arrives from the {exit.backref.direction}")
+            subject.goto(exit.to_room_id)
+            if exit.backref:
+                echo_around(subject, f"{subject} arrives from the {exit.backref.direction}.")
+            else:
+                echo_around(subject, f'{subject} arrives.')
             subject.room.look(subject)
         else: 
             if exit.direction in cardinals:
