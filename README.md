@@ -1,3 +1,11 @@
+
+     _  Eventually, there may be a                                
+  __| |_   _ _ __   __ _  ___  ___  _ __  
+ / _` | | | | '_ \ / _` |/ _ \/ _ \| '_ \ 
+| (_| | |_| | | | | (_| |  __/ (_) | | | |
+ \__,_|\__,_|_| |_|\__, |\___|\___/|_| |_|
+                   |___/ (c)2024 Petrofang 
+                   
 Dungeon: A multi-user game written in Python
 
 Description:
@@ -17,4 +25,4 @@ Installation:
 License: 
     Copyright (c) 2024 Giles Cooper
 
-    MIT License - See LICENSE.md to read software license details.
+    MIT License - See LICENSE.md for software license details.
